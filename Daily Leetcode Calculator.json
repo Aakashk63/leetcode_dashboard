@@ -1,0 +1,245 @@
+{
+  "name": "Daily Leetcode Calculator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 22
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "48cb11da-2b76-4222-9097-a6fe222ebc89",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1yM8yVosWEhkJD1uXTc3VwGk-ervbPLwdepLKfcXXb_0",
+          "mode": "list",
+          "cachedResultName": "Untitled spreadsheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yM8yVosWEhkJD1uXTc3VwGk-ervbPLwdepLKfcXXb_0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yM8yVosWEhkJD1uXTc3VwGk-ervbPLwdepLKfcXXb_0/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "f8cd8b1c-2eb5-47bb-a30b-d04bcf3d1a08",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "nODP8WqaqaSy3IMn",
+          "name": "Google Sheets account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f9039bbd-aa76-4301-a86f-af6f590797f6",
+              "name": "Leetcode Url",
+              "value": "={{ $json['Leetcode Url'] }}",
+              "type": "string"
+            },
+            {
+              "id": "cd4c5912-bfad-4f73-b2b3-bb165ed76c6e",
+              "name": "date",
+              "value": "March 2nd 2026, 10:31:39 pm",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "7d68c8e0-6fcf-4213-8e1e-8f0be810408f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================\n// GET DATE FROM INPUT NODE (ROBUST)\n// =====================================\n\nlet inputDateRaw = $input.first().json.date;\n\nif (!inputDateRaw) {\n  throw new Error(\"Input date missing\");\n}\n\n// Remove ordinal suffix (st, nd, rd, th)\ninputDateRaw = String(inputDateRaw).replace(/(\\d+)(st|nd|rd|th)/gi, \"$1\");\n\n// Parse Date\nconst parsedDate = new Date(inputDateRaw);\n\nif (isNaN(parsedDate.getTime())) {\n  throw new Error(\"Invalid date format: \" + inputDateRaw);\n}\n\n// Convert to YYYY-MM-DD\nconst targetDateString = parsedDate.toISOString().split(\"T\")[0];\n\n\n// =====================================\n// PROCESS ALL INPUT ITEMS\n// =====================================\n\nconst inputItems = $input.all();\nconst results = [];\n\nfor (const item of inputItems) {\n\n  // Flexible column name support\n  const leetcodeUrlRaw =\n    item.json['Leetcode Url'] ||\n    item.json['Leetcode URL'] ||\n    item.json['leetcode_url'] ||\n    item.json['url'] ||\n    null;\n\n  if (!leetcodeUrlRaw) {\n    results.push({\n      json: {\n        error: \"Leetcode Url missing\",\n        originalData: item.json\n      }\n    });\n    continue;\n  }\n\n  const leetcodeUrl = String(leetcodeUrlRaw).trim();\n\n  // =====================================\n  // EXTRACT USERNAME\n  // =====================================\n\n  let username = \"\";\n\n  const match = leetcodeUrl.match(/leetcode\\.com\\/(?:u\\/)?([^\\/\\s]+)/);\n\n  if (match && match[1]) {\n    username = match[1];\n  } else if (!leetcodeUrl.includes(\"/\")) {\n    username = leetcodeUrl;\n  }\n\n  if (!username) {\n    results.push({\n      json: {\n        error: \"Unable to extract username\",\n        leetcodeUrl\n      }\n    });\n    continue;\n  }\n\n  // =====================================\n  // GRAPHQL QUERY\n  // =====================================\n\n  const query = `\n  query getRecentAc($username: String!) {\n    recentAcSubmissionList(username: $username, limit: 200) {\n      id\n      title\n      timestamp\n    }\n  }\n  `;\n\n  let solvedProblems = [];\n\n  try {\n\n    const response = await this.helpers.httpRequest({\n      method: \"POST\",\n      url: \"https://leetcode.com/graphql\",\n      headers: {\n        \"Content-Type\": \"application/json\",\n        \"Referer\": \"https://leetcode.com\",\n        \"User-Agent\": \"Mozilla/5.0\"\n      },\n      body: {\n        query,\n        variables: { username }\n      },\n      json: true\n    });\n\n    if (response?.data?.recentAcSubmissionList) {\n\n      const submissions = response.data.recentAcSubmissionList;\n      const solvedSet = new Set();\n\n      for (const submission of submissions) {\n\n        const submissionDate = new Date(\n          parseInt(submission.timestamp) * 1000\n        ).toISOString().split(\"T\")[0];\n\n        if (submissionDate === targetDateString) {\n          solvedSet.add(submission.title);\n        }\n      }\n\n      solvedProblems = Array.from(solvedSet);\n    }\n\n  } catch (err) {\n    results.push({\n      json: {\n        username,\n        error: \"API request failed\",\n        details: err.message\n      }\n    });\n    continue;\n  }\n\n  // =====================================\n  // FINAL RESULT\n  // =====================================\n\n  results.push({\n    json: {\n      username,\n      date: targetDateString,\n      problemsSolved: solvedProblems.length,\n      solvedProblems: solvedProblems\n    }\n  });\n}\n\n\n// =====================================\n// GUARANTEE SAFE OUTPUT (n8n REQUIRED)\n// =====================================\n\nif (results.length === 0) {\n  return [\n    {\n      json: {\n        message: \"No valid input data received\"\n      }\n    }\n  ];\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "d0287470-accc-4cab-a82b-9c3aeffd0be8",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1yM8yVosWEhkJD1uXTc3VwGk-ervbPLwdepLKfcXXb_0",
+          "mode": "list",
+          "cachedResultName": "Untitled spreadsheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yM8yVosWEhkJD1uXTc3VwGk-ervbPLwdepLKfcXXb_0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yM8yVosWEhkJD1uXTc3VwGk-ervbPLwdepLKfcXXb_0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.username }}",
+            "Total Sum solved ": "={{ $json.problemsSolved }}",
+            "Date": "={{ $json.date }}",
+            "Leetcode Url": "={{ $('Get row(s) in sheet').item.json['Leetcode Url'] }}"
+          },
+          "matchingColumns": [
+            "Leetcode Url"
+          ],
+          "schema": [
+            {
+              "id": "Leetcode Url",
+              "displayName": "Leetcode Url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Total Sum solved ",
+              "displayName": "Total Sum solved ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        816,
+        0
+      ],
+      "id": "613ddbca-1dd4-4541-9114-623e9ac77eb6",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "nODP8WqaqaSy3IMn",
+          "name": "Google Sheets account 6"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "175f6de7-39b5-47f5-bcd8-b754447a44a6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9ab102ac00c0888c4f8198626b060c0a26c08d050c19bb46eee179fb7d6c7ebe"
+  },
+  "id": "QsGIr84IS764eN2K",
+  "tags": []
+}
