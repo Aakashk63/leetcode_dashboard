@@ -1,7 +1,7 @@
 import * as xlsx from 'xlsx';
 import fs from 'fs';
 import { extractUsername, fetchLeetCodeStats } from './services/leetcodeService.js';
-import connectDB from './config/db.js';
+import connectDB, { sequelize } from './config/db.js';
 import Student from './models/Student.js';
 
 const runImport = async () => {
@@ -44,13 +44,12 @@ const runImport = async () => {
 
                 // Extract username
                 let username = extractUsername(rawLeetcode) || rawLeetcode.split('/').pop().trim();
-                // Handle cases like "Gukan_M11 - LeetCode Profile"
                 if (username.includes(' - ')) {
                     username = username.split(' - ')[0].trim();
                 }
 
                 // Check if already exists
-                const existing = await Student.findOne({ leetcodeUsername: username });
+                const existing = await Student.findOne({ where: { leetcodeUsername: username } });
                 if (existing) {
                     if (existing.mentorEmail !== fileObj.email) {
                         existing.mentorEmail = fileObj.email;

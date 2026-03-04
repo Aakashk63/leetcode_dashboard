@@ -2,7 +2,7 @@ import Student from '../models/Student.js';
 import { fetchLeetCodeStats, extractUsername, fetchRecentAcSubmissions } from '../services/leetcodeService.js';
 import * as xlsx from 'xlsx';
 import fs from 'fs';
-
+import { Op } from 'sequelize';
 
 // Get all students for leaderboard
 export const getLeaderboard = async (req, res) => {
@@ -16,7 +16,13 @@ export const getLeaderboard = async (req, res) => {
             };
         }
 
-        let students = await Student.find(whereClause).sort({ totalSolved: -1 }).lean();
+        let students = await Student.findAll({
+            where: whereClause,
+            order: [['totalSolved', 'DESC']]
+        });
+
+        // Convert Sequelize instances to plain JSON
+        students = students.map(s => s.get({ plain: true }));
 
         // Optional Super Admin feature: transparently append Mentor name to the existing 'batch' column
         if (role === 'super_admin') {
@@ -77,8 +83,10 @@ export const addStudent = async (req, res) => {
 // Get single student details
 export const getStudent = async (req, res) => {
     try {
-        const studentObj = await Student.findById(req.params.id).lean();
-        if (!studentObj) return res.status(404).json({ error: 'Student not found' });
+        const student = await Student.findByPk(req.params.id);
+        if (!student) return res.status(404).json({ error: 'Student not found' });
+
+        const studentObj = student.get({ plain: true });
 
         const recentSubmissions = await fetchRecentAcSubmissions(studentObj.leetcodeUsername);
 
@@ -117,7 +125,7 @@ export const getStudent = async (req, res) => {
 // Delete a student
 export const deleteStudent = async (req, res) => {
     try {
-        await Student.findByIdAndDelete(req.params.id);
+        await Student.destroy({ where: { _id: req.params.id } });
         res.json({ message: 'Student deleted' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -126,7 +134,7 @@ export const deleteStudent = async (req, res) => {
 
 // Internal logic for updating all students
 export const updateAllStudents = async () => {
-    const students = await Student.find();
+    const students = await Student.findAll();
     let updated = 0;
 
     for (const student of students) {
