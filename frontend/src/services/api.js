@@ -1,18 +1,7 @@
 import axios from 'axios';
 
-// Fast API method for automatic routing across Localhost, Network (LAN), and Internet
-const getBaseUrl = () => {
-    // 1. Internet (Production e.g., Vercel): Uses environment variable
-    if (import.meta.env.VITE_API_URL) {
-        return import.meta.env.VITE_API_URL;
-    }
-    
-    // 2. Localhost & Network (LAN): Dynamically uses the device's hostname/IP
-    return `http://${window.location.hostname}:5000/api`;
-};
-
 const api = axios.create({
-    baseURL: getBaseUrl(),
+    baseURL: "https://leetcode-dashboard.onrender.com/api"
 });
 
 api.interceptors.request.use((config) => {
