@@ -17,7 +17,7 @@ export const getLeaderboard = async (req, res) => {
                 const data = xlsx.utils.sheet_to_json(worksheet);
 
                 const usernames = data.map(row => {
-                    const raw = row['Leetcode ID '];
+                    const raw = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
                     if (!raw) return null;
                     let username = extractUsername(raw) || raw.split('/').pop().trim();
                     if (username.includes(' - ')) {
@@ -50,7 +50,8 @@ export const getLeaderboard = async (req, res) => {
             const MENTOR_SHEETS = [
                 { file: 'Mentor 1.xlsx', display: 'Mentor 1' },
                 { file: 'Mentor 2.xlsx', display: 'Mentor 2' },
-                { file: 'Leetcode Platform .xlsx', display: 'Mentor 3' }
+                { file: 'Leetcode Platform .xlsx', display: 'Mentor 3' },
+                { file: 'mentor4.xlsx', display: 'Mentor 4' }
             ];
             const mentorMap = {};
 
@@ -62,7 +63,7 @@ export const getLeaderboard = async (req, res) => {
                         const data = xlsx.utils.sheet_to_json(worksheet);
 
                         data.forEach(row => {
-                            const raw = row['Leetcode ID '];
+                            const raw = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
                             if (raw) {
                                 let username = extractUsername(raw) || raw.split('/').pop().trim();
                                 if (username.includes(' - ')) username = username.split(' - ')[0].trim();

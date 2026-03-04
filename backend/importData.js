@@ -11,7 +11,8 @@ const runImport = async () => {
     const files = [
         '../Mentor 1.xlsx',
         '../Mentor 2.xlsx',
-        '../Leetcode Platform .xlsx'
+        '../Leetcode Platform .xlsx',
+        '../mentor4.xlsx'
     ];
 
     let imported = 0;
@@ -33,9 +34,9 @@ const runImport = async () => {
 
         for (const row of data) {
             try {
-                const name = row['Name of the Mentee'];
-                const batch = row['Year'] || row['Mentor'] || 'Unknown Batch';
-                const rawLeetcode = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'];
+                const name = row['Name of the Mentee'] || row['Name'];
+                const batch = row['Year'] || row['Mentor'] || row['Mentor 4'] || 'Unknown Batch';
+                const rawLeetcode = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
 
                 if (!name || !rawLeetcode) {
                     // console.log('Skipping invalid row (missing name or url):', row);

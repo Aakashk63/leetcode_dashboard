@@ -4,6 +4,7 @@ const MENTORS = {
     'mentor1@admin.com': { password: 'password123', role: 'mentor', sheet: 'Mentor 1.xlsx', display: 'Mentor 1' },
     'mentor2@admin.com': { password: 'password123', role: 'mentor', sheet: 'Mentor 2.xlsx', display: 'Mentor 2' },
     'mentor3@admin.com': { password: 'password123', role: 'mentor', sheet: 'Leetcode Platform .xlsx', display: 'Mentor 3' },
+    'mentor4@admin.com': { password: 'password123', role: 'mentor', sheet: 'mentor4.xlsx', display: 'Mentor 4' },
     'superadmin@admin.com': { password: 'admin123', role: 'super_admin', display: 'Super Admin' }
 };
 
