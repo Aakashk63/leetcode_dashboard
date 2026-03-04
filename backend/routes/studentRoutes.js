@@ -9,7 +9,7 @@ router.get('/daily-activity', requireAuth, getDailyActivity);
 
 router.post('/student', addStudent);
 router.get('/student/:id', getStudent);
-router.get('/profile/:username', getStudentProfile);
+router.get('/profile/:username', requireAuth, getStudentProfile);
 router.delete('/student/:id', deleteStudent);
 router.post('/update-all', triggerUpdate);
 

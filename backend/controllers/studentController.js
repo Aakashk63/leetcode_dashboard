@@ -191,12 +191,32 @@ export const getStudentProfile = async (req, res) => {
         }
 
         // Try to fetch name/batch from database by username
-        const dbStudent = await Student.findOne({ where: { leetcodeUsername: username } });
+        let dbStudent = await Student.findOne({ where: { leetcodeUsername: username } });
+        let studentName = username;
+        let studentBatch = 'Mentor Assigned';
+
+        if (dbStudent) {
+            studentName = dbStudent.name;
+            studentBatch = dbStudent.batch;
+        } else if (req.user && req.user.sheet) {
+            // Fallback: Check the Excel roster for this mentor
+            try {
+                const roster = readExcel(req.user.sheet);
+                const excelStudent = roster.find(s => s.leetcodeUsername === username);
+                if (excelStudent) {
+                    studentName = excelStudent.name;
+                    studentBatch = excelStudent.batch;
+                }
+            } catch (e) {
+                console.error("Excel lookup failed in profile", e);
+            }
+        }
 
         res.json({
             username,
-            name: dbStudent ? dbStudent.name : username,
-            batch: dbStudent ? dbStudent.batch : 'Mentor Assigned',
+            leetcodeUsername: username,
+            name: studentName,
+            batch: studentBatch,
             totalSolved: stats.totalSolved,
             easySolved: stats.easySolved,
             mediumSolved: stats.mediumSolved,
