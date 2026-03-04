@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getStudent } from '../services/api';
+import { getStudent, getStudentProfile } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { ArrowLeft, Target, Award, Zap, Code2 } from 'lucide-react';
 
@@ -43,17 +43,53 @@ const StudentDetail = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchStudent = async () => {
+        const fetchData = async () => {
             try {
+                // 1. Get basic student info (name, batch, etc.) from DB
                 const res = await getStudent(id);
-                setStudent(res.data);
+                const dbStudent = res.data;
+
+                // 2. Get live LeetCode stats using username
+                try {
+                    const profileRes = await getStudentProfile(dbStudent.leetcodeUsername);
+                    const liveStats = profileRes.data;
+
+                    // 3. Process Calendar Data for Chart
+                    const calendar = liveStats.calendar || {};
+                    const last7DaysData = [];
+                    const now = Math.floor(Date.now() / 1000);
+                    const secondsInDay = 86400;
+
+                    for (let i = 6; i >= 0; i--) {
+                        const dayTimestamp = Math.floor((now - (i * secondsInDay)) / secondsInDay) * secondsInDay;
+                        const dateObj = new Date(dayTimestamp * 1000);
+                        const dateStr = dateObj.toLocaleDateString('en-CA');
+
+                        last7DaysData.push({
+                            date: dateStr,
+                            name: dateStr.split('-').slice(1).join('/'),
+                            solved: calendar[dayTimestamp] || 0,
+                            solvedProblems: [] // LeetCode calendar doesn't provide titles
+                        });
+                    }
+
+                    setStudent({
+                        ...dbStudent,
+                        ...liveStats,
+                        recentActivityDetailed: last7DaysData
+                    });
+                } catch (e) {
+                    console.error("Live profile fetch failed", e);
+                    setStudent(dbStudent);
+                }
+
                 setLoading(false);
             } catch (err) {
                 console.error(err);
                 setLoading(false);
             }
         };
-        fetchStudent();
+        fetchData();
     }, [id]);
 
     if (loading) return <div className="animate-pulse h-64 bg-slate-800 rounded-xl" />;
@@ -93,11 +129,12 @@ const StudentDetail = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <StatsCard title="Total Solved" value={student.totalSolved} color="text-accent" icon={<Award className="text-accent" size={24} />} />
+                <StatsCard title="Today" value={student.todaySolved || 0} color="text-orange-400" icon={<Zap className="text-orange-400" size={24} />} />
                 <StatsCard title="Easy" value={student.easySolved} color="text-green-400" icon={<Target className="text-green-400" size={24} />} />
                 <StatsCard title="Medium" value={student.mediumSolved} color="text-yellow-400" icon={<Target className="text-yellow-400" size={24} />} />
-                <StatsCard title="Hard" value={student.hardSolved} color="text-red-400" icon={<Zap className="text-red-400" size={24} />} />
+                <StatsCard title="Hard" value={student.hardSolved} color="text-red-400" icon={<Target className="text-red-400" size={24} />} />
             </div>
 
             <div className="glass-card p-6">

@@ -1,53 +1,53 @@
-import { GraphQLClient, gql } from 'graphql-request';
+import axios from 'axios';
 
 const leetcodeAPI = 'https://leetcode.com/graphql';
-const client = new GraphQLClient(leetcodeAPI);
-
-const getUserStatsQuery = gql`
-  query getUserProfile($username: String!) {
-    matchedUser(username: $username) {
-      submitStatsGlobal {
-        acSubmissionNum {
-          difficulty
-          count
-        }
-      }
-    }
-  }
-`;
-
-const recentAcQuery = gql`
-  query getRecentAc($username: String!) {
-    recentAcSubmissionList(username: $username, limit: 200) {
-      id
-      title
-      timestamp
-    }
-  }
-`;
 
 export const fetchLeetCodeStats = async (username) => {
+  const query = `
+    query userProfile($username: String!) {
+      matchedUser(username: $username) {
+        submitStats {
+          acSubmissionNum {
+            difficulty
+            count
+          }
+        }
+        profile {
+          reputation
+        }
+        submissionCalendar
+      }
+    }
+    `;
+
   try {
-    const data = await client.request(getUserStatsQuery, { username });
-    if (!data.matchedUser) return null;
-
-    const stats = data.matchedUser.submitStatsGlobal.acSubmissionNum;
-    const totals = {
-      All: 0,
-      Easy: 0,
-      Medium: 0,
-      Hard: 0
-    };
-
-    stats.forEach(stat => {
-      totals[stat.difficulty] = stat.count;
+    const response = await axios.post(leetcodeAPI, {
+      query,
+      variables: { username }
     });
 
+    const user = response.data.data.matchedUser;
+    if (!user) return null;
+
+    const stats = user.submitStats.acSubmissionNum;
+    const totalSolved = stats.find(d => d.difficulty === "All")?.count || 0;
+    const easySolved = stats.find(d => d.difficulty === "Easy")?.count || 0;
+    const mediumSolved = stats.find(d => d.difficulty === "Medium")?.count || 0;
+    const hardSolved = stats.find(d => d.difficulty === "Hard")?.count || 0;
+
+    const calendar = JSON.parse(user.submissionCalendar);
+
+    // Today solved (UTC-based day)
+    const today = Math.floor(Date.now() / 1000 / 86400) * 86400;
+    const todaySolved = calendar[today] || 0;
+
     return {
-      totalSolved: totals.All,
-      easySolved: totals.Easy,
-      mediumSolved: totals.Medium,
-      hardSolved: totals.Hard
+      totalSolved,
+      easySolved,
+      mediumSolved,
+      hardSolved,
+      todaySolved,
+      calendar
     };
   } catch (error) {
     console.error(`Error fetching stats for ${username}:`, error.message);
@@ -56,9 +56,22 @@ export const fetchLeetCodeStats = async (username) => {
 };
 
 export const fetchRecentAcSubmissions = async (username) => {
+  const query = `
+    query getRecentAc($username: String!) {
+      recentAcSubmissionList(username: $username, limit: 200) {
+        id
+        title
+        timestamp
+      }
+    }
+    `;
+
   try {
-    const data = await client.request(recentAcQuery, { username });
-    return data.recentAcSubmissionList || [];
+    const response = await axios.post(leetcodeAPI, {
+      query,
+      variables: { username }
+    });
+    return response.data.data.recentAcSubmissionList || [];
   } catch (error) {
     console.error(`Error fetching recent submissions for ${username}:`, error.message);
     return [];
@@ -67,7 +80,6 @@ export const fetchRecentAcSubmissions = async (username) => {
 
 export const extractUsername = (url) => {
   if (!url) return null;
-  // Handle formats like https://leetcode.com/u/username/ or https://leetcode.com/username
   const match = url.match(/leetcode\.com\/(?:u\/)?([^\/]+)/);
   return match ? match[1] : null;
 };

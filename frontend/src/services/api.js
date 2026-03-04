@@ -15,6 +15,7 @@ api.interceptors.request.use((config) => {
 export const loginUser = (data) => api.post('/auth/login', data);
 export const getLeaderboard = () => api.get('/students/leaderboard');
 export const getStudent = (id) => api.get(`/students/student/${id}`);
+export const getStudentProfile = (username) => api.get(`/students/profile/${username}`);
 export const addStudent = (data) => api.post('/students/student', data);
 export const deleteStudent = (id) => api.delete(`/students/student/${id}`);
 export const triggerUpdate = () => api.post('/students/update-all');

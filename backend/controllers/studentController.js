@@ -122,6 +122,31 @@ export const getStudent = async (req, res) => {
     }
 };
 
+// Get live student profile from LeetCode
+export const getStudentProfile = async (req, res) => {
+    try {
+        const username = req.params.username;
+        const stats = await fetchLeetCodeStats(username);
+
+        if (!stats) {
+            return res.status(404).json({ error: "Student not found on LeetCode" });
+        }
+
+        res.json({
+            username,
+            totalSolved: stats.totalSolved,
+            easySolved: stats.easySolved,
+            mediumSolved: stats.mediumSolved,
+            hardSolved: stats.hardSolved,
+            todaySolved: stats.todaySolved,
+            calendar: stats.calendar
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to fetch LeetCode stats" });
+    }
+};
+
 // Delete a student
 export const deleteStudent = async (req, res) => {
     try {
