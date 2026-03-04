@@ -26,12 +26,15 @@ export function readExcel(fileName) {
 
         // Clean up the data to match expected frontend format
         return data.map(row => {
-            const rawLeetcode = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
+            const rawLeetcode = row['Leetcode Username'] || row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
             let username = '';
             if (rawLeetcode) {
-                username = rawLeetcode.split('/').pop().trim();
+                // If it's a URL, extract the end part. If it's just a username, keep it.
+                username = rawLeetcode.toString().split('/').filter(Boolean).pop().trim();
                 if (username.includes(' - ')) username = username.split(' - ')[0].trim();
             }
+
+            console.log(`[readExcel] Mapped student: ${row['Name of the Mentee'] || row['Name']} -> Username: ${username}`);
 
             return {
                 _id: username || Math.random().toString(36).substr(2, 9),

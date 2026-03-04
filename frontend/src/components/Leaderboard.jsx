@@ -48,6 +48,7 @@ const Leaderboard = () => {
     const sortedStudents = [...students].sort((a, b) => b.totalSolved - a.totalSolved);
 
     const getDailySolved = (student) => {
+        if (student.todaySolved !== undefined) return student.todaySolved;
         return student.dailyStats?.find(d => d.date === currentDay)?.solved || 0;
     };
 

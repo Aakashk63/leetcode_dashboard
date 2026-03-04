@@ -4,47 +4,56 @@ import * as xlsx from 'xlsx';
 import fs from 'fs';
 import { Op } from 'sequelize';
 
+import readExcel from '../readExcel.js';
+
 // Get all students for leaderboard
 export const getLeaderboard = async (req, res) => {
     try {
-        const { role, sheet } = req.user;
-        let whereClause = {};
+        const { email, role, sheet: fileName } = req.user;
+        console.log(`[Leaderboard] Request from ${email} (Role: ${role})`);
 
-        if (role === 'mentor') {
-            whereClause = {
-                mentorEmail: req.user.email
-            };
-        }
-
-        let students = await Student.findAll({
-            where: whereClause,
-            order: [['totalSolved', 'DESC']]
-        });
-
-        // Convert Sequelize instances to plain JSON
-        students = students.map(s => s.get({ plain: true }));
-
-        // Optional Super Admin feature: transparently append Mentor name to the existing 'batch' column
         if (role === 'super_admin') {
-            const mentorMap = {
-                'mentor1@admin.com': 'Mentor 1',
-                'mentor2@admin.com': 'Mentor 2',
-                'mentor3@admin.com': 'Mentor 3',
-                'mentor4@admin.com': 'Mentor 4'
-            };
-
-            students = students.map(s => {
-                const assignedMentor = mentorMap[s.mentorEmail];
-                if (assignedMentor) {
-                    s.batch = `${s.batch} (${assignedMentor})`;
-                }
-                return s;
-            });
+            const students = await Student.findAll({ order: [['totalSolved', 'DESC']] });
+            return res.json(students);
         }
 
-        res.json(students);
+        if (!fileName) return res.status(404).json({ error: 'No roster found.' });
+
+        const roster = readExcel(fileName);
+        const leaderboard = [];
+
+        // Sequential fetch to ensure all students are processed reliably
+        for (const student of roster) {
+            if (!student.leetcodeUsername) {
+                leaderboard.push(student);
+                continue;
+            }
+
+            try {
+                const liveStats = await fetchLeetCodeStats(student.leetcodeUsername);
+                if (liveStats) {
+                    leaderboard.push({
+                        ...student,
+                        totalSolved: liveStats.totalSolved,
+                        easySolved: liveStats.easySolved,
+                        mediumSolved: liveStats.mediumSolved,
+                        hardSolved: liveStats.hardSolved,
+                        todaySolved: liveStats.todaySolved
+                    });
+                } else {
+                    leaderboard.push(student);
+                }
+            } catch (err) {
+                console.error(`[Leaderboard] Error fetching for ${student.leetcodeUsername}:`, err.message);
+                leaderboard.push(student);
+            }
+        }
+
+        leaderboard.sort((a, b) => (b.totalSolved || 0) - (a.totalSolved || 0));
+        res.json(leaderboard);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Leaderboard Controller Error:', error);
+        res.status(500).json({ error: "Failed to generate leaderboard" });
     }
 };
 
