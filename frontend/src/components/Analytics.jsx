@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getLeaderboard } from '../services/api';
+import { getDailyActivity } from '../services/api';
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Calendar, Filter, Activity } from 'lucide-react';
@@ -15,42 +15,46 @@ const Analytics = () => {
     };
 
     const [date, setDate] = useState(getLocalYYYYMMDD());
-    const [batch, setBatch] = useState('All');
+    const [batch, setBatch] = useState('All'); // We'll still use local batch filter if needed
     const [activityFilter, setActivityFilter] = useState('Active');
     const [loading, setLoading] = useState(true);
+    const [fetchingDate, setFetchingDate] = useState(false);
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchActivity = async () => {
+            setFetchingDate(true);
             try {
-                const res = await getLeaderboard();
+                const res = await getDailyActivity(date);
                 setStudents(res.data);
                 setLoading(false);
+                setFetchingDate(false);
             } catch (err) {
                 console.error(err);
                 setLoading(false);
+                setFetchingDate(false);
             }
         };
-        fetchData();
-    }, []);
+        fetchActivity();
+    }, [date]);
 
     if (loading) return <div className="animate-pulse h-64 bg-slate-800 rounded-xl" />;
 
-    const batches = ['All', ...new Set(students.map(s => s.batch))];
+    const batches = ['All', ...new Set(students.filter(s => s.batch).map(s => s.batch))];
 
-    const filtered = students.filter(s => batch === 'All' || s.batch === batch);
-
-    const tableData = filtered.map(student => {
-        const dayStat = student.dailyStats.find(d => d.date === date);
-        return {
-            id: student._id,
+    const tableData = students
+        .map(student => ({
+            id: student.username || student.name,
             name: student.name,
-            solved: dayStat ? dayStat.solved : 0
-        };
-    }).filter(d => {
-        if (activityFilter === 'Active') return d.solved > 0;
-        if (activityFilter === 'Zero') return d.solved === 0;
-        return true;
-    }).sort((a, b) => b.solved - a.solved);
+            solved: student.solvedToday || 0,
+            batch: student.batch || 'Mentor Assigned'
+        }))
+        .filter(s => batch === 'All' || s.batch === batch)
+        .filter(d => {
+            if (activityFilter === 'Active') return d.solved > 0;
+            if (activityFilter === 'Zero') return d.solved === 0;
+            return true;
+        })
+        .sort((a, b) => b.solved - a.solved);
 
     return (
         <div className="space-y-8 slide-in-bottom relative z-10 font-sans pb-10">

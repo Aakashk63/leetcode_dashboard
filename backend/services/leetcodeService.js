@@ -78,6 +78,37 @@ export const fetchRecentAcSubmissions = async (username) => {
   }
 };
 
+export const getDailySolved = async (username, selectedDate) => {
+  const query = `
+  query userProfile($username: String!) {
+    matchedUser(username: $username) {
+      submissionCalendar
+    }
+  }
+  `;
+
+  try {
+    const response = await axios.post(leetcodeAPI, {
+      query,
+      variables: { username }
+    });
+
+    const user = response.data.data.matchedUser;
+    if (!user) return 0;
+
+    const calendar = JSON.parse(user.submissionCalendar);
+
+    // Normalize selectedDate (YYYY-MM-DD) to UTC timestamp at 00:00:00
+    const dateObj = new Date(selectedDate);
+    const utcTimestamp = Math.floor(Date.UTC(dateObj.getUTCFullYear(), dateObj.getUTCMonth(), dateObj.getUTCDate()) / 1000);
+
+    return calendar[utcTimestamp] || 0;
+  } catch (error) {
+    console.error(`Error fetching daily stats for ${username}:`, error.message);
+    return 0;
+  }
+};
+
 export const extractUsername = (url) => {
   if (!url) return null;
   const match = url.match(/leetcode\.com\/(?:u\/)?([^\/]+)/);

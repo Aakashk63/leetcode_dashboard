@@ -1,5 +1,5 @@
 import Student from '../models/Student.js';
-import { fetchLeetCodeStats, extractUsername, fetchRecentAcSubmissions } from '../services/leetcodeService.js';
+import { fetchLeetCodeStats, extractUsername, fetchRecentAcSubmissions, getDailySolved } from '../services/leetcodeService.js';
 import * as xlsx from 'xlsx';
 import fs from 'fs';
 import { Op } from 'sequelize';
@@ -54,6 +54,55 @@ export const getLeaderboard = async (req, res) => {
     } catch (error) {
         console.error('Leaderboard Controller Error:', error);
         res.status(500).json({ error: "Failed to generate leaderboard" });
+    }
+};
+
+// Get daily activity for logic/graphs
+export const getDailyActivity = async (req, res) => {
+    try {
+        const { date } = req.query;
+        const { sheet: fileName, role } = req.user;
+
+        if (!date) return res.status(400).json({ error: "Date parameter is required" });
+        if (!fileName && role !== 'super_admin') return res.status(404).json({ error: "No roster mapped" });
+
+        let roster = [];
+        if (role === 'super_admin') {
+            const students = await Student.findAll();
+            roster = students.map(s => ({
+                name: s.name,
+                leetcodeUsername: s.leetcodeUsername
+            }));
+        } else {
+            roster = readExcel(fileName);
+        }
+
+        // Fetch solved counts in parallel
+        const results = await Promise.all(roster.map(async (student) => {
+            if (!student.leetcodeUsername) return { name: student.name, username: '', solvedToday: 0 };
+
+            try {
+                const solvedToday = await getDailySolved(student.leetcodeUsername, date);
+                return {
+                    name: student.name,
+                    username: student.leetcodeUsername,
+                    solvedToday,
+                    batch: student.batch || 'Mentor Assigned'
+                };
+            } catch (err) {
+                return {
+                    name: student.name,
+                    username: student.leetcodeUsername,
+                    solvedToday: 0,
+                    batch: student.batch || 'Mentor Assigned'
+                };
+            }
+        }));
+
+        res.json(results);
+    } catch (error) {
+        console.error('Daily Activity Controller Error:', error);
+        res.status(500).json({ error: "Activity fetch failed" });
     }
 };
 
