@@ -25,11 +25,13 @@ router.get('/leaderboard', requireAuth, async (req, res) => {
         else if (email === 'mentor4@admin.com') fileName = 'mentor4.xlsx';
 
         if (!fileName) {
+            console.log(`[Leaderboard] No fileName mapped for email: ${email}`);
             return res.status(404).json({ error: 'No roster found for this mentor.' });
         }
 
         // Get roster from Excel
         const roster = readExcel(fileName);
+        console.log(`[Leaderboard] Roster for ${fileName}: ${roster.length} students found.`);
         const usernames = roster.map(s => s.leetcodeUsername).filter(Boolean);
 
         // Fetch latest stats from DB for these students to ensure "Progress" works

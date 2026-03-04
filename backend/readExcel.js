@@ -31,11 +31,13 @@ export function readExcel(fileName) {
             }
 
             return {
+                _id: username || Math.random().toString(36).substr(2, 9),
                 name: row['Name of the Mentee'] || row['Name'] || 'Unknown',
                 leetcodeUsername: username,
-                batch: row['Year'] || row['Mentor'] || 'Default',
+                batch: row['Year'] || row['Mentor'] || row['Mentor 4'] || 'Default',
                 totalSolved: row['Total Solved'] || 0,
-                leetcodeUrl: rawLeetcode || ''
+                leetcodeUrl: rawLeetcode || '',
+                dailyStats: [] // Technical requirement for frontend rendering
             };
         });
     } catch (error) {
