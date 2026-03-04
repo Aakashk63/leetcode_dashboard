@@ -132,8 +132,13 @@ export const getStudentProfile = async (req, res) => {
             return res.status(404).json({ error: "Student not found on LeetCode" });
         }
 
+        // Try to fetch name/batch from database by username
+        const dbStudent = await Student.findOne({ where: { leetcodeUsername: username } });
+
         res.json({
             username,
+            name: dbStudent ? dbStudent.name : username,
+            batch: dbStudent ? dbStudent.batch : 'Mentor Assigned',
             totalSolved: stats.totalSolved,
             easySolved: stats.easySolved,
             mediumSolved: stats.mediumSolved,

@@ -85,7 +85,7 @@ const App = () => {
         <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8">
           <Routes>
             <Route path="/" element={<Leaderboard />} />
-            <Route path="/student/:id" element={<StudentDetail />} />
+            <Route path="/student/:username" element={<StudentDetail />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/admin" element={<AdminDashboard />} />
           </Routes>

@@ -114,12 +114,12 @@ const Leaderboard = () => {
             <div className="flex flex-col md:flex-row items-end justify-center gap-4 md:gap-8 mt-16 px-4">
                 {/* 2nd Place */}
                 {topThree[0] && (
-                    <div className="flex flex-col items-center w-full md:w-48 order-2 md:order-1 group">
-                        <div className="relative mb-4 flex flex-col items-center transition-transform hover:-translate-y-2">
+                    <Link to={`/student/${topThree[0].leetcodeUsername}`} className="flex flex-col items-center w-full md:w-48 order-2 md:order-1 group">
+                        <div className="relative mb-4 flex flex-col items-center transition-transform group-hover:-translate-y-2">
                             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-gray-500 to-gray-300 flex items-center justify-center text-dark font-black text-xl shadow-[0_5px_15px_rgba(0,0,0,0.5)] border-2 border-gray-400 z-10">
                                 {topThree[0].name.charAt(0).toUpperCase()}
                             </div>
-                            <span className="mt-2 text-white font-bold tracking-wide truncate max-w-[120px]">{topThree[0].name}</span>
+                            <span className="mt-2 text-white font-bold tracking-wide truncate max-w-[120px] group-hover:text-accent transition-colors">{topThree[0].name}</span>
                             <div className="bg-darker border border-white/10 px-3 py-1 rounded-full text-gray-300 text-xs font-bold mt-2 shadow-inner flex items-center gap-1">
                                 <Flame size={12} className="text-gray-400" />
                                 {topThree[0].totalSolved}
@@ -129,18 +129,18 @@ const Leaderboard = () => {
                             <div className="absolute top-2 w-10 h-1 bg-white/10 rounded-full"></div>
                             <span className="text-4xl font-black text-white/20 mt-6 select-none">2ND</span>
                         </div>
-                    </div>
+                    </Link>
                 )}
 
                 {/* 1st Place (Center) */}
                 {topThree[1] && (
-                    <div className="flex flex-col items-center w-full md:w-56 order-1 md:order-2 z-10 animate-float">
+                    <Link to={`/student/${topThree[1].leetcodeUsername}`} className="flex flex-col items-center w-full md:w-56 order-1 md:order-2 z-10 animate-float group">
                         <div className="relative mb-6 flex flex-col items-center">
                             <Crown className="text-gold w-10 h-10 -mb-3 z-20 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]" />
-                            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-accent to-orange-500 flex items-center justify-center text-white font-black text-3xl shadow-[0_0_30px_rgba(255,59,59,0.5)] border-2 border-accent relative z-10">
+                            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-accent to-orange-500 flex items-center justify-center text-white font-black text-3xl shadow-[0_0_30px_rgba(255,59,59,0.5)] border-2 border-accent relative z-10 group-hover:scale-105 transition-transform">
                                 {topThree[1].name.charAt(0).toUpperCase()}
                             </div>
-                            <span className="mt-4 text-white font-black text-lg tracking-wide drop-shadow-md truncate max-w-[150px]">{topThree[1].name}</span>
+                            <span className="mt-4 text-white font-black text-lg tracking-wide drop-shadow-md truncate max-w-[150px] group-hover:text-accent transition-colors">{topThree[1].name}</span>
                             <div className="bg-accent/20 border border-accent/50 px-4 py-1.5 rounded-full text-white text-sm font-black mt-2 shadow-[0_0_15px_rgba(255,59,59,0.4)] flex items-center gap-1">
                                 <Flame size={14} className="text-accent animate-pulse-fast" />
                                 {topThree[1].totalSolved}
@@ -150,17 +150,17 @@ const Leaderboard = () => {
                             <div className="absolute top-2 w-16 h-1 bg-accent/50 rounded-full shadow-[0_0_10px_rgba(255,59,59,1)]"></div>
                             <span className="text-6xl font-black text-accent/20 mt-8 select-none drop-shadow-md">1ST</span>
                         </div>
-                    </div>
+                    </Link>
                 )}
 
                 {/* 3rd Place */}
                 {topThree[2] && (
-                    <div className="flex flex-col items-center w-full md:w-48 order-3 md:order-3 group">
-                        <div className="relative mb-4 flex flex-col items-center transition-transform hover:-translate-y-2">
+                    <Link to={`/student/${topThree[2].leetcodeUsername}`} className="flex flex-col items-center w-full md:w-48 order-3 md:order-3 group">
+                        <div className="relative mb-4 flex flex-col items-center transition-transform group-hover:-translate-y-2">
                             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-700 to-amber-500 flex items-center justify-center text-white font-black text-xl shadow-[0_5px_15px_rgba(0,0,0,0.5)] border-2 border-amber-600 z-10">
                                 {topThree[2].name.charAt(0).toUpperCase()}
                             </div>
-                            <span className="mt-2 text-white font-bold tracking-wide truncate max-w-[120px]">{topThree[2].name}</span>
+                            <span className="mt-2 text-white font-bold tracking-wide truncate max-w-[120px] group-hover:text-amber-500 transition-colors">{topThree[2].name}</span>
                             <div className="bg-darker border border-white/10 px-3 py-1 rounded-full text-amber-500 text-xs font-bold mt-2 shadow-inner flex items-center gap-1">
                                 <Flame size={12} className="text-amber-500" />
                                 {topThree[2].totalSolved}
@@ -170,7 +170,7 @@ const Leaderboard = () => {
                             <div className="absolute top-2 w-10 h-1 bg-white/10 rounded-full"></div>
                             <span className="text-4xl font-black text-white/20 mt-6 select-none">3RD</span>
                         </div>
-                    </div>
+                    </Link>
                 )}
             </div>
 
@@ -222,7 +222,7 @@ const Leaderboard = () => {
                         {displayStudents.map((student, index) => {
                             const rank = index + 1;
                             return (
-                                <Link to={`/student/${student._id}`} key={student._id} className="grid grid-cols-[80px_1fr_120px_120px] items-center bg-white/[0.02] hover:bg-white/[0.06] border border-transparent hover:border-white/10 rounded-xl p-3 px-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-[1px] group">
+                                <Link to={`/student/${student.leetcodeUsername}`} key={student._id || index} className="grid grid-cols-[80px_1fr_120px_120px] items-center bg-white/[0.02] hover:bg-white/[0.06] border border-transparent hover:border-white/10 rounded-xl p-3 px-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-[1px] group">
                                     <div className="text-center font-black text-slate-500 text-lg group-hover:text-white transition-colors">
                                         {rank}
                                     </div>

@@ -38,50 +38,42 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const StudentDetail = () => {
-    const { id } = useParams();
+    const { username } = useParams();
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchStudent = async () => {
             try {
-                // 1. Get basic student info (name, batch, etc.) from DB
-                const res = await getStudent(id);
-                const dbStudent = res.data;
+                // Fetch live LeetCode stats using username
+                const res = await getStudentProfile(username);
+                const liveStats = res.data;
 
-                // 2. Get live LeetCode stats using username
-                try {
-                    const profileRes = await getStudentProfile(dbStudent.leetcodeUsername);
-                    const liveStats = profileRes.data;
+                // Process Calendar Data for Chart
+                const calendar = liveStats.calendar || {};
+                const last7DaysData = [];
+                const now = Math.floor(Date.now() / 1000);
+                const secondsInDay = 86400;
 
-                    // 3. Process Calendar Data for Chart
-                    const calendar = liveStats.calendar || {};
-                    const last7DaysData = [];
-                    const now = Math.floor(Date.now() / 1000);
-                    const secondsInDay = 86400;
+                for (let i = 6; i >= 0; i--) {
+                    const dayTimestamp = Math.floor((now - (i * secondsInDay)) / secondsInDay) * secondsInDay;
+                    const dateObj = new Date(dayTimestamp * 1000);
+                    const dateStr = dateObj.toLocaleDateString('en-CA');
 
-                    for (let i = 6; i >= 0; i--) {
-                        const dayTimestamp = Math.floor((now - (i * secondsInDay)) / secondsInDay) * secondsInDay;
-                        const dateObj = new Date(dayTimestamp * 1000);
-                        const dateStr = dateObj.toLocaleDateString('en-CA');
-
-                        last7DaysData.push({
-                            date: dateStr,
-                            name: dateStr.split('-').slice(1).join('/'),
-                            solved: calendar[dayTimestamp] || 0,
-                            solvedProblems: [] // LeetCode calendar doesn't provide titles
-                        });
-                    }
-
-                    setStudent({
-                        ...dbStudent,
-                        ...liveStats,
-                        recentActivityDetailed: last7DaysData
+                    last7DaysData.push({
+                        date: dateStr,
+                        name: dateStr.split('-').slice(1).join('/'),
+                        solved: calendar[dayTimestamp] || 0,
+                        solvedProblems: []
                     });
-                } catch (e) {
-                    console.error("Live profile fetch failed", e);
-                    setStudent(dbStudent);
                 }
+
+                setStudent({
+                    name: liveStats.username, // Fallback to username for name
+                    batch: 'Mentor Assigned', // Default placeholder
+                    ...liveStats,
+                    recentActivityDetailed: last7DaysData
+                });
 
                 setLoading(false);
             } catch (err) {
@@ -89,8 +81,8 @@ const StudentDetail = () => {
                 setLoading(false);
             }
         };
-        fetchData();
-    }, [id]);
+        fetchStudent();
+    }, [username]);
 
     if (loading) return <div className="animate-pulse h-64 bg-slate-800 rounded-xl" />;
     if (!student) return <div className="text-center text-red-500 mt-10">Student not found.</div>;
