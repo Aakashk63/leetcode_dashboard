@@ -17,15 +17,17 @@ connectDB();
 // Setup Cron Jobs
 setupCronJobs();
 
+// Apply CORS BEFORE routes
 app.use(cors({
     origin: [
-        "http://localhost:5173",
-        "https://leetcode-dashboard-beta.vercel.app"
+        "https://leetcode-dashboard-beta.vercel.app",
+        "http://localhost:5173"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
+
 app.use(express.json());
 
 // Routes

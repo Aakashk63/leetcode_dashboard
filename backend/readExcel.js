@@ -1,12 +1,47 @@
 import xlsx from 'xlsx';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-try {
-    const workbook = xlsx.readFile('d:\\Leetcode Platfor m\\Leetcode Platform .xlsx');
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json(worksheet);
-    console.log('Columns:', Object.keys(data[0] || {}));
-    console.log('First 3 rows:', data.slice(0, 3));
-} catch (error) {
-    console.error('Error reading Excel:', error);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export function readExcel(fileName) {
+    try {
+        // Look for file in the parent directory (root)
+        const filePath = path.join(__dirname, '..', fileName);
+
+        if (!fs.existsSync(filePath)) {
+            console.error(`File not found: ${filePath}`);
+            return [];
+        }
+
+        const workbook = xlsx.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet);
+
+        // Clean up the data to match expected frontend format
+        return data.map(row => {
+            const rawLeetcode = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
+            let username = '';
+            if (rawLeetcode) {
+                username = rawLeetcode.split('/').pop().trim();
+                if (username.includes(' - ')) username = username.split(' - ')[0].trim();
+            }
+
+            return {
+                name: row['Name of the Mentee'] || row['Name'] || 'Unknown',
+                leetcodeUsername: username,
+                batch: row['Year'] || row['Mentor'] || 'Default',
+                totalSolved: row['Total Solved'] || 0,
+                leetcodeUrl: rawLeetcode || ''
+            };
+        });
+    } catch (error) {
+        console.error('Error reading Excel:', error);
+        return [];
+    }
 }
+
+export default readExcel;
