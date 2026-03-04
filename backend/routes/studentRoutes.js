@@ -10,6 +10,7 @@ const router = express.Router();
 router.get('/leaderboard', requireAuth, async (req, res) => {
     try {
         const { email, role } = req.user;
+        console.log(`[Leaderboard] Request from ${email} (Role: ${role})`);
         let fileName = '';
 
         if (role === 'super_admin') {
@@ -18,14 +19,11 @@ router.get('/leaderboard', requireAuth, async (req, res) => {
             return res.json(students);
         }
 
-        // Map Mentor Email to Excel File
-        if (email === 'mentor1@admin.com') fileName = 'Mentor 1.xlsx';
-        else if (email === 'mentor2@admin.com') fileName = 'Mentor 2.xlsx';
-        else if (email === 'mentor3@admin.com') fileName = 'Leetcode Platform .xlsx';
-        else if (email === 'mentor4@admin.com') fileName = 'mentor4.xlsx';
+        // Use the sheet mapped in authController for this user
+        fileName = req.user.sheet;
 
         if (!fileName) {
-            console.log(`[Leaderboard] No fileName mapped for email: ${email}`);
+            console.log(`[Leaderboard] No sheet mapped in token for email: ${email}`);
             return res.status(404).json({ error: 'No roster found for this mentor.' });
         }
 
