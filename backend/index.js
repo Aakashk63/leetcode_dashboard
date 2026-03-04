@@ -11,16 +11,20 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
+// Connect to Database
 connectDB();
 
 // Setup Cron Jobs
 setupCronJobs();
 
 app.use(cors({
-    origin: "*",
+    origin: [
+        "http://localhost:5173",
+        "https://leetcode-dashboard-beta.vercel.app"
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
 }));
 app.use(express.json());
 
