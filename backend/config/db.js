@@ -1,21 +1,14 @@
-import { Sequelize } from 'sequelize';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 
-export const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './database.sqlite',
-    logging: false, // disable logging queries
-});
-
 const connectDB = async () => {
     try {
-        await sequelize.authenticate();
-        console.log('SQLite connection successful.');
-        // Sync models
-        await sequelize.sync();
+        const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/leetcode-leaderboard';
+        await mongoose.connect(uri);
+        console.log('MongoDB connection successful.');
     } catch (error) {
-        console.error('SQLite connection error:', error);
+        console.error('MongoDB connection error:', error);
         process.exit(1);
     }
 };

@@ -1,7 +1,7 @@
 import * as xlsx from 'xlsx';
 import fs from 'fs';
 import { extractUsername, fetchLeetCodeStats } from './services/leetcodeService.js';
-import connectDB, { sequelize } from './config/db.js';
+import connectDB from './config/db.js';
 import Student from './models/Student.js';
 
 const runImport = async () => {
@@ -9,28 +9,28 @@ const runImport = async () => {
     await connectDB();
 
     const files = [
-        '../Mentor 1.xlsx',
-        '../Mentor 2.xlsx',
-        '../Leetcode Platform .xlsx',
-        '../mentor4.xlsx'
+        { path: '../Mentor 1.xlsx', email: 'mentor1@admin.com' },
+        { path: '../Mentor 2.xlsx', email: 'mentor2@admin.com' },
+        { path: '../Leetcode Platform .xlsx', email: 'mentor3@admin.com' },
+        { path: '../mentor4.xlsx', email: 'mentor4@admin.com' }
     ];
 
     let imported = 0;
     let failed = 0;
 
-    for (const file of files) {
-        if (!fs.existsSync(file)) {
-            console.log(`File ${file} does not exist, skipping...`);
+    for (const fileObj of files) {
+        if (!fs.existsSync(fileObj.path)) {
+            console.log(`File ${fileObj.path} does not exist, skipping...`);
             continue;
         }
 
-        console.log(`Processing ${file}...`);
+        console.log(`Processing ${fileObj.path}...`);
 
-        const workbook = xlsx.read(fs.readFileSync(file));
+        const workbook = xlsx.read(fs.readFileSync(fileObj.path));
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const data = xlsx.utils.sheet_to_json(sheet);
 
-        console.log(`Found ${data.length} records in ${file}.`);
+        console.log(`Found ${data.length} records in ${fileObj.path}.`);
 
         for (const row of data) {
             try {
@@ -39,7 +39,6 @@ const runImport = async () => {
                 const rawLeetcode = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
 
                 if (!name || !rawLeetcode) {
-                    // console.log('Skipping invalid row (missing name or url):', row);
                     continue;
                 }
 
@@ -51,9 +50,15 @@ const runImport = async () => {
                 }
 
                 // Check if already exists
-                const existing = await Student.findOne({ where: { leetcodeUsername: username } });
+                const existing = await Student.findOne({ leetcodeUsername: username });
                 if (existing) {
-                    console.log(`Student ${username} already exists, skipping...`);
+                    if (existing.mentorEmail !== fileObj.email) {
+                        existing.mentorEmail = fileObj.email;
+                        await existing.save();
+                        console.log(`Student ${username} updated with mentor email ${fileObj.email}`);
+                    } else {
+                        console.log(`Student ${username} already exists and mapped correctly, skipping...`);
+                    }
                     continue;
                 }
 
@@ -64,6 +69,7 @@ const runImport = async () => {
                 await Student.create({
                     name,
                     email: `${username}@placeholder.com`, // fake email
+                    mentorEmail: fileObj.email,
                     leetcodeUrl: rawLeetcode.startsWith('http') ? rawLeetcode : `https://leetcode.com/u/${username}/`,
                     leetcodeUsername: username,
                     batch,

@@ -13,10 +13,10 @@ api.interceptors.request.use((config) => {
 });
 
 export const loginUser = (data) => api.post('/auth/login', data);
-export const getLeaderboard = () => api.get('/leaderboard');
-export const getStudent = (id) => api.get(`/student/${id}`);
-export const addStudent = (data) => api.post('/student', data);
-export const deleteStudent = (id) => api.delete(`/student/${id}`);
-export const triggerUpdate = () => api.post('/update-all');
+export const getLeaderboard = () => api.get('/students/leaderboard');
+export const getStudent = (id) => api.get(`/students/student/${id}`);
+export const addStudent = (data) => api.post('/students/student', data);
+export const deleteStudent = (id) => api.delete(`/students/student/${id}`);
+export const triggerUpdate = () => api.post('/students/update-all');
 
 export default api;

@@ -7,7 +7,7 @@ export const setupCronJobs = () => {
     cron.schedule('0 0 * * *', async () => {
         console.log('[CRON] Starting daily update...');
         try {
-            const students = await Student.findAll();
+            const students = await Student.find();
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
             for (const student of students) {

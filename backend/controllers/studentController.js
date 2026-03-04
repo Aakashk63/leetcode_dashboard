@@ -2,7 +2,7 @@ import Student from '../models/Student.js';
 import { fetchLeetCodeStats, extractUsername, fetchRecentAcSubmissions } from '../services/leetcodeService.js';
 import * as xlsx from 'xlsx';
 import fs from 'fs';
-import { Op } from 'sequelize';
+
 
 // Get all students for leaderboard
 export const getLeaderboard = async (req, res) => {
@@ -10,72 +10,25 @@ export const getLeaderboard = async (req, res) => {
         const { role, sheet } = req.user;
         let whereClause = {};
 
-        if (role === 'mentor' && sheet) {
-            try {
-                const workbook = xlsx.read(fs.readFileSync(`../${sheet}`));
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const data = xlsx.utils.sheet_to_json(worksheet);
-
-                const usernames = data.map(row => {
-                    const raw = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
-                    if (!raw) return null;
-                    let username = extractUsername(raw) || raw.split('/').pop().trim();
-                    if (username.includes(' - ')) {
-                        username = username.split(' - ')[0].trim();
-                    }
-                    return username;
-                }).filter(Boolean);
-
-                whereClause = {
-                    leetcodeUsername: {
-                        [Op.in]: usernames
-                    }
-                };
-            } catch (err) {
-                console.error("Failed to read mentor excel sheet", err);
-                return res.status(500).json({ error: 'Failed to read assigned roster.' });
-            }
+        if (role === 'mentor') {
+            whereClause = {
+                mentorEmail: req.user.email
+            };
         }
 
-        let students = await Student.findAll({
-            where: whereClause,
-            order: [['totalSolved', 'DESC']]
-        });
-
-        // Convert Sequelize instances to plain JSON
-        students = students.map(s => s.get({ plain: true }));
+        let students = await Student.find(whereClause).sort({ totalSolved: -1 }).lean();
 
         // Optional Super Admin feature: transparently append Mentor name to the existing 'batch' column
         if (role === 'super_admin') {
-            const MENTOR_SHEETS = [
-                { file: 'Mentor 1.xlsx', display: 'Mentor 1' },
-                { file: 'Mentor 2.xlsx', display: 'Mentor 2' },
-                { file: 'Leetcode Platform .xlsx', display: 'Mentor 3' },
-                { file: 'mentor4.xlsx', display: 'Mentor 4' }
-            ];
-            const mentorMap = {};
-
-            for (const { file, display } of MENTOR_SHEETS) {
-                try {
-                    if (fs.existsSync(`../${file}`)) {
-                        const workbook = xlsx.read(fs.readFileSync(`../${file}`));
-                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const data = xlsx.utils.sheet_to_json(worksheet);
-
-                        data.forEach(row => {
-                            const raw = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
-                            if (raw) {
-                                let username = extractUsername(raw) || raw.split('/').pop().trim();
-                                if (username.includes(' - ')) username = username.split(' - ')[0].trim();
-                                mentorMap[username.toLowerCase()] = display;
-                            }
-                        });
-                    }
-                } catch (e) { console.error("Could not parse", file); }
-            }
+            const mentorMap = {
+                'mentor1@admin.com': 'Mentor 1',
+                'mentor2@admin.com': 'Mentor 2',
+                'mentor3@admin.com': 'Mentor 3',
+                'mentor4@admin.com': 'Mentor 4'
+            };
 
             students = students.map(s => {
-                const assignedMentor = mentorMap[s.leetcodeUsername.toLowerCase()];
+                const assignedMentor = mentorMap[s.mentorEmail];
                 if (assignedMentor) {
                     s.batch = `${s.batch} (${assignedMentor})`;
                 }
@@ -124,12 +77,10 @@ export const addStudent = async (req, res) => {
 // Get single student details
 export const getStudent = async (req, res) => {
     try {
-        const student = await Student.findByPk(req.params.id);
-        if (!student) return res.status(404).json({ error: 'Student not found' });
+        const studentObj = await Student.findById(req.params.id).lean();
+        if (!studentObj) return res.status(404).json({ error: 'Student not found' });
 
-        const studentObj = student.get({ plain: true });
-
-        const recentSubmissions = await fetchRecentAcSubmissions(student.leetcodeUsername);
+        const recentSubmissions = await fetchRecentAcSubmissions(studentObj.leetcodeUsername);
 
         let last7Days = [];
         const today = new Date();
@@ -166,7 +117,7 @@ export const getStudent = async (req, res) => {
 // Delete a student
 export const deleteStudent = async (req, res) => {
     try {
-        await Student.destroy({ where: { _id: req.params.id } });
+        await Student.findByIdAndDelete(req.params.id);
         res.json({ message: 'Student deleted' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -175,7 +126,7 @@ export const deleteStudent = async (req, res) => {
 
 // Internal logic for updating all students
 export const updateAllStudents = async () => {
-    const students = await Student.findAll();
+    const students = await Student.find();
     let updated = 0;
 
     for (const student of students) {

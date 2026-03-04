@@ -1,40 +1,30 @@
-import { Sequelize, DataTypes } from 'sequelize';
-import { sequelize } from '../config/db.js';
+import mongoose from 'mongoose';
 
-const Student = sequelize.define('Student', {
-    _id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true
-    },
-    name: { type: DataTypes.STRING, allowNull: false },
-    email: { type: DataTypes.STRING, allowNull: false, unique: true },
-    leetcodeUrl: { type: DataTypes.STRING, allowNull: false },
-    leetcodeUsername: { type: DataTypes.STRING, allowNull: false, unique: true },
-    batch: { type: DataTypes.STRING, allowNull: false },
-    totalSolved: { type: DataTypes.INTEGER, defaultValue: 0 },
-    easySolved: { type: DataTypes.INTEGER, defaultValue: 0 },
-    mediumSolved: { type: DataTypes.INTEGER, defaultValue: 0 },
-    hardSolved: { type: DataTypes.INTEGER, defaultValue: 0 },
+const StudentSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    leetcodeUrl: { type: String, required: true },
+    leetcodeUsername: { type: String, required: true, unique: true },
+    mentorEmail: { type: String },
+    batch: { type: String, required: true },
+    totalSolved: { type: Number, default: 0 },
+    easySolved: { type: Number, default: 0 },
+    mediumSolved: { type: Number, default: 0 },
+    hardSolved: { type: Number, default: 0 },
     dailyStats: {
-        type: DataTypes.TEXT,
-        defaultValue: '[]',
-        get() {
-            const rawValue = this.getDataValue('dailyStats');
-            if (!rawValue) return [];
-            try {
-                return JSON.parse(rawValue);
-            } catch (e) {
-                return [];
+        type: [
+            {
+                date: { type: String },
+                solved: { type: Number }
             }
-        },
-        set(value) {
-            this.setDataValue('dailyStats', JSON.stringify(value));
-        }
+        ],
+        default: []
     },
-    lastUpdated: { type: DataTypes.DATE, defaultValue: Sequelize.NOW }
+    lastUpdated: { type: Date, default: Date.now }
 }, {
     timestamps: true
 });
+
+const Student = mongoose.model('Student', StudentSchema);
 
 export default Student;
