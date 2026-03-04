@@ -21,6 +21,9 @@ export function readExcel(fileName) {
         const worksheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(worksheet);
 
+        console.log(`[readExcel] Read ${data.length} rows from ${fileName}`);
+        if (data.length > 0) console.log(`[readExcel] Keys found: ${Object.keys(data[0]).join(', ')}`);
+
         // Clean up the data to match expected frontend format
         return data.map(row => {
             const rawLeetcode = row['Leetcode ID '] || row['Leetcode Url'] || row['Leetcode URL'] || row['Leetcode url'];
