@@ -21,6 +21,7 @@ setupCronJobs();
 app.use(cors({
     origin: [
         "https://leetcode-dashboard-beta.vercel.app",
+        "https://leetcode-champions.vercel.app",
         "http://localhost:5173"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
