@@ -15,10 +15,14 @@ export const fetchLeetCodeStats = async (username) => {
         profile {
           reputation
         }
-        submissionCalendar
+      }
+      recentAcSubmissionList(username: $username, limit: 100) {
+        id
+        title
+        timestamp
       }
     }
-    `;
+  `;
 
   try {
     const response = await axios.post(leetcodeAPI, {
@@ -27,6 +31,7 @@ export const fetchLeetCodeStats = async (username) => {
     });
 
     const user = response.data.data.matchedUser;
+    const recentAc = response.data.data.recentAcSubmissionList || [];
     if (!user) return null;
 
     const stats = user.submitStats.acSubmissionNum;
@@ -35,19 +40,23 @@ export const fetchLeetCodeStats = async (username) => {
     const mediumSolved = stats.find(d => d.difficulty === "Medium")?.count || 0;
     const hardSolved = stats.find(d => d.difficulty === "Hard")?.count || 0;
 
-    const calendar = JSON.parse(user.submissionCalendar);
-
-    // Today solved (UTC-based day)
-    const today = Math.floor(Date.now() / 1000 / 86400) * 86400;
-    const todaySolved = calendar[today] || 0;
+    // Today solved based on unique accepted problems in Asian timezone
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const todayUnique = new Set();
+    recentAc.forEach(sub => {
+      const dstr = new Date(parseInt(sub.timestamp) * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      if (dstr === todayStr) {
+        todayUnique.add(sub.title);
+      }
+    });
 
     return {
       totalSolved,
       easySolved,
       mediumSolved,
       hardSolved,
-      todaySolved,
-      calendar
+      todaySolved: todayUnique.size,
+      recentAc
     };
   } catch (error) {
     console.error(`Error fetching stats for ${username}:`, error.message);
@@ -80,11 +89,13 @@ export const fetchRecentAcSubmissions = async (username) => {
 
 export const getDailySolved = async (username, selectedDate) => {
   const query = `
-  query userProfile($username: String!) {
-    matchedUser(username: $username) {
-      submissionCalendar
+    query getRecentAc($username: String!) {
+      recentAcSubmissionList(username: $username, limit: 100) {
+        id
+        title
+        timestamp
+      }
     }
-  }
   `;
 
   try {
@@ -93,16 +104,18 @@ export const getDailySolved = async (username, selectedDate) => {
       variables: { username }
     });
 
-    const user = response.data.data.matchedUser;
-    if (!user) return 0;
+    const recentAc = response.data.data.recentAcSubmissionList;
+    if (!recentAc) return 0;
 
-    const calendar = JSON.parse(user.submissionCalendar);
+    const uniqueSolved = new Set();
+    recentAc.forEach(sub => {
+      const dstr = new Date(parseInt(sub.timestamp) * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      if (dstr === selectedDate) {
+        uniqueSolved.add(sub.title);
+      }
+    });
 
-    // Normalize selectedDate (YYYY-MM-DD) to UTC timestamp at 00:00:00
-    const dateObj = new Date(selectedDate);
-    const utcTimestamp = Math.floor(Date.UTC(dateObj.getUTCFullYear(), dateObj.getUTCMonth(), dateObj.getUTCDate()) / 1000);
-
-    return calendar[utcTimestamp] || 0;
+    return uniqueSolved.size;
   } catch (error) {
     console.error(`Error fetching daily stats for ${username}:`, error.message);
     return 0;

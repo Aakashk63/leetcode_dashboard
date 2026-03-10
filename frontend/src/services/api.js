@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = isLocal ? "http://localhost:5000/api" : "https://leetcode-dashboard.onrender.com/api";
+
 const api = axios.create({
-    baseURL: "https://leetcode-dashboard.onrender.com/api"
+    baseURL: API_URL
 });
 
 api.interceptors.request.use((config) => {
