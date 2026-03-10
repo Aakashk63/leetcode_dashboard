@@ -49,24 +49,11 @@ const StudentDetail = () => {
                 const res = await getStudentProfile(username);
                 const liveStats = res.data;
 
-                // Process Calendar Data for Chart
-                const calendar = liveStats.calendar || {};
-                const last7DaysData = [];
-                const now = Math.floor(Date.now() / 1000);
-                const secondsInDay = 86400;
-
-                for (let i = 6; i >= 0; i--) {
-                    const dayTimestamp = Math.floor((now - (i * secondsInDay)) / secondsInDay) * secondsInDay;
-                    const dateObj = new Date(dayTimestamp * 1000);
-                    const dateStr = dateObj.toLocaleDateString('en-CA');
-
-                    last7DaysData.push({
-                        date: dateStr,
-                        name: dateStr.split('-').slice(1).join('/'),
-                        solved: calendar[dayTimestamp] || 0,
-                        solvedProblems: []
-                    });
-                }
+                // Process Activity Data for Chart
+                const last7DaysData = (liveStats.recentActivityDetailed || []).map(d => ({
+                    ...d,
+                    name: d.date ? d.date.split('-').slice(1).join('/') : ''
+                }));
 
                 setStudent({
                     name: liveStats.username, // Fallback to username for name
