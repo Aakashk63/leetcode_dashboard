@@ -20,34 +20,35 @@ export const getLeaderboard = async (req, res) => {
         if (!fileName) return res.status(404).json({ error: 'No roster found.' });
 
         const roster = readExcel(fileName);
-        const leaderboard = [];
 
-        // Sequential fetch to ensure all students are processed reliably
-        for (const student of roster) {
-            if (!student.leetcodeUsername) {
-                leaderboard.push(student);
-                continue;
-            }
+        const usernames = roster.map(s => s.leetcodeUsername).filter(Boolean);
+        const dbStudents = await Student.findAll({
+            where: { leetcodeUsername: { [Op.in]: usernames } }
+        });
 
-            try {
-                const liveStats = await fetchLeetCodeStats(student.leetcodeUsername);
-                if (liveStats) {
-                    leaderboard.push({
-                        ...student,
-                        totalSolved: liveStats.totalSolved,
-                        easySolved: liveStats.easySolved,
-                        mediumSolved: liveStats.mediumSolved,
-                        hardSolved: liveStats.hardSolved,
-                        todaySolved: liveStats.todaySolved
-                    });
-                } else {
-                    leaderboard.push(student);
-                }
-            } catch (err) {
-                console.error(`[Leaderboard] Error fetching for ${student.leetcodeUsername}:`, err.message);
-                leaderboard.push(student);
+        const currentDay = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+        const leaderboard = roster.map(student => {
+            if (!student.leetcodeUsername) return student;
+
+            const dbRef = dbStudents.find(db => db.leetcodeUsername === student.leetcodeUsername);
+            if (dbRef) {
+                const todayStat = dbRef.dailyStats && Array.isArray(dbRef.dailyStats)
+                    ? dbRef.dailyStats.find(d => d.date === currentDay)
+                    : null;
+
+                return {
+                    ...student,
+                    totalSolved: dbRef.totalSolved || 0,
+                    easySolved: dbRef.easySolved || 0,
+                    mediumSolved: dbRef.mediumSolved || 0,
+                    hardSolved: dbRef.hardSolved || 0,
+                    dailyStats: dbRef.dailyStats || [],
+                    todaySolved: todayStat ? todayStat.solved : 0
+                };
             }
-        }
+            return student;
+        });
 
         leaderboard.sort((a, b) => (b.totalSolved || 0) - (a.totalSolved || 0));
         res.json(leaderboard);
@@ -77,27 +78,30 @@ export const getDailyActivity = async (req, res) => {
             roster = readExcel(fileName);
         }
 
-        // Fetch solved counts in parallel
-        const results = await Promise.all(roster.map(async (student) => {
+        const usernames = roster.map(s => s.leetcodeUsername).filter(Boolean);
+        const dbStudents = await Student.findAll({
+            where: { leetcodeUsername: { [Op.in]: usernames } }
+        });
+
+        const results = roster.map((student) => {
             if (!student.leetcodeUsername) return { name: student.name, username: '', solvedToday: 0 };
 
-            try {
-                const solvedToday = await getDailySolved(student.leetcodeUsername, date);
-                return {
-                    name: student.name,
-                    username: student.leetcodeUsername,
-                    solvedToday,
-                    batch: student.batch || 'Mentor Assigned'
-                };
-            } catch (err) {
-                return {
-                    name: student.name,
-                    username: student.leetcodeUsername,
-                    solvedToday: 0,
-                    batch: student.batch || 'Mentor Assigned'
-                };
+            const dbRef = dbStudents.find(db => db.leetcodeUsername === student.leetcodeUsername);
+            let solvedToday = 0;
+            if (dbRef && dbRef.dailyStats && Array.isArray(dbRef.dailyStats)) {
+                const stat = dbRef.dailyStats.find(d => d.date === date);
+                if (stat) {
+                    solvedToday = stat.solved;
+                }
             }
-        }));
+
+            return {
+                name: student.name,
+                username: student.leetcodeUsername,
+                solvedToday,
+                batch: student.batch || 'Mentor Assigned'
+            };
+        });
 
         res.json(results);
     } catch (error) {
@@ -212,6 +216,34 @@ export const getStudentProfile = async (req, res) => {
             }
         }
 
+        let last7Days = [];
+        const today = new Date();
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            last7Days.push(d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+        }
+
+        const distinctSolvedPerDay = {};
+        last7Days.forEach(dateStr => {
+            distinctSolvedPerDay[dateStr] = new Set();
+        });
+
+        if (stats.recentAc) {
+            stats.recentAc.forEach(sub => {
+                const dateStr = new Date(parseInt(sub.timestamp) * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                if (distinctSolvedPerDay[dateStr]) {
+                    distinctSolvedPerDay[dateStr].add(sub.title);
+                }
+            });
+        }
+
+        const recentActivityDetailed = last7Days.map(dateStr => ({
+            date: dateStr,
+            solved: distinctSolvedPerDay[dateStr].size,
+            solvedProblems: Array.from(distinctSolvedPerDay[dateStr])
+        })).reverse();
+
         res.json({
             username,
             leetcodeUsername: username,
@@ -222,7 +254,7 @@ export const getStudentProfile = async (req, res) => {
             mediumSolved: stats.mediumSolved,
             hardSolved: stats.hardSolved,
             todaySolved: stats.todaySolved,
-            calendar: stats.calendar
+            recentActivityDetailed
         });
     } catch (error) {
         console.error(error);
@@ -240,50 +272,59 @@ export const deleteStudent = async (req, res) => {
     }
 };
 
+let isGlobalUpdating = false;
+
 // Internal logic for updating all students
 export const updateAllStudents = async () => {
-    const students = await Student.findAll();
-    let updated = 0;
+    if (isGlobalUpdating) return 0;
 
-    for (const student of students) {
-        const stats = await fetchLeetCodeStats(student.leetcodeUsername);
-        const recentSubmissions = await fetchRecentAcSubmissions(student.leetcodeUsername);
+    try {
+        isGlobalUpdating = true;
+        const students = await Student.findAll();
+        let updated = 0;
 
-        if (stats && recentSubmissions) {
-            const distinctSolvedPerDay = {};
+        for (const student of students) {
+            const stats = await fetchLeetCodeStats(student.leetcodeUsername);
+            const recentSubmissions = await fetchRecentAcSubmissions(student.leetcodeUsername);
 
-            recentSubmissions.forEach(sub => {
-                const dateStr = new Date(parseInt(sub.timestamp) * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-                if (!distinctSolvedPerDay[dateStr]) {
-                    distinctSolvedPerDay[dateStr] = new Set();
+            if (stats && recentSubmissions) {
+                const distinctSolvedPerDay = {};
+
+                recentSubmissions.forEach(sub => {
+                    const dateStr = new Date(parseInt(sub.timestamp) * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                    if (!distinctSolvedPerDay[dateStr]) {
+                        distinctSolvedPerDay[dateStr] = new Set();
+                    }
+                    distinctSolvedPerDay[dateStr].add(sub.title);
+                });
+
+                const dailyStatsMap = new Map();
+                student.dailyStats.forEach(d => {
+                    dailyStatsMap.set(d.date, d.solved);
+                });
+
+                for (const [date, solvedSet] of Object.entries(distinctSolvedPerDay)) {
+                    dailyStatsMap.set(date, solvedSet.size);
                 }
-                distinctSolvedPerDay[dateStr].add(sub.title);
-            });
 
-            const dailyStatsMap = new Map();
-            student.dailyStats.forEach(d => {
-                dailyStatsMap.set(d.date, d.solved);
-            });
+                student.dailyStats = Array.from(dailyStatsMap, ([date, solved]) => ({ date, solved }));
+                student.dailyStats.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-            for (const [date, solvedSet] of Object.entries(distinctSolvedPerDay)) {
-                dailyStatsMap.set(date, solvedSet.size);
+                student.totalSolved = stats.totalSolved;
+                student.easySolved = stats.easySolved;
+                student.mediumSolved = stats.mediumSolved;
+                student.hardSolved = stats.hardSolved;
+                student.lastUpdated = Date.now();
+                await student.save();
+                updated++;
             }
-
-            student.dailyStats = Array.from(dailyStatsMap, ([date, solved]) => ({ date, solved }));
-            student.dailyStats.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-            student.totalSolved = stats.totalSolved;
-            student.easySolved = stats.easySolved;
-            student.mediumSolved = stats.mediumSolved;
-            student.hardSolved = stats.hardSolved;
-            student.lastUpdated = Date.now();
-            await student.save();
-            updated++;
+            // Delay to avoid rate limits
+            await new Promise(r => setTimeout(r, 1000));
         }
-        // Delay to avoid rate limits
-        await new Promise(r => setTimeout(r, 1000));
+        return updated;
+    } finally {
+        isGlobalUpdating = false;
     }
-    return updated;
 };
 
 // Update all students manually (admin feature)
