@@ -28,11 +28,7 @@ export function readExcel(fileName) {
         return data.map(row => {
             // Find the LeetCode column regardless of exact casing or trailing spaces
             const keys = Object.keys(row);
-            const leetcodeKey = keys.find(k => {
-                const lower = k.toLowerCase().trim().replace(/\s+/g, ' ');
-                return lower === 'leetcode id' || lower === 'leetcode username' ||
-                    lower === 'leetcode url';
-            });
+            const leetcodeKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '').includes('leetcode'));
 
             const rawLeetcode = leetcodeKey ? row[leetcodeKey] : null;
             let username = '';
@@ -77,11 +73,14 @@ export function readExcel(fileName) {
                 }
             }
 
-            console.log(`[readExcel] ${fileName} -> Student: ${row['Name of the Mentee'] || row['Name']} | Raw: ${rawLeetcode} | Parsed: ${username}`);
+            const nameKey = keys.find(k => k.toLowerCase().includes('name')) || Object.keys(row)[1];
+            const studentName = nameKey ? row[nameKey] : 'Unknown';
+
+            console.log(`[readExcel] ${fileName} -> Student: ${studentName} | Raw: ${rawLeetcode} | Parsed: ${username}`);
 
             return {
-                _id: username || Math.random().toString(36).substr(2, 9),
-                name: row['Name of the Mentee'] || row['Name'] || 'Unknown',
+                _id: username || Math.random().toString(36).substring(2, 9),
+                name: studentName,
                 leetcodeUsername: username,
                 batch: row['Year'] || row['Mentor'] || row['Mentor 4'] || 'Default',
                 totalSolved: row['Total Solved'] || 0,
