@@ -12,21 +12,87 @@ export const getLeaderboard = async (req, res) => {
         const { email, role, sheet: fileName } = req.user;
         console.log(`[Leaderboard] Request from ${email} (Role: ${role})`);
 
+        const currentDay = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
         if (role === 'super_admin') {
-            const students = await Student.findAll({ order: [['totalSolved', 'DESC']] });
-            return res.json(students);
+            const Mentor = (await import('../models/Mentor.js')).default;
+            const mentors = await Mentor.findAll();
+            let allRosterStudents = [];
+            const processedUsernames = new Set();
+
+            for (const m of mentors) {
+                if (m.sheet && m.role !== 'super_admin') {
+                    try {
+                        const mRoster = readExcel(m.sheet);
+                        mRoster.forEach(s => {
+                            s.mentorEmail = m.email;
+                            s.mentorDisplay = m.display;
+                            if (s.leetcodeUsername) processedUsernames.add(s.leetcodeUsername);
+                        });
+                        allRosterStudents.push(...mRoster);
+                    } catch (e) { }
+                }
+            }
+
+            const dbStudents = await Student.findAll();
+            const leaderboard = allRosterStudents.map(student => {
+                if (!student.leetcodeUsername) return student;
+                const dbRef = dbStudents.find(db => db.leetcodeUsername === student.leetcodeUsername);
+                if (dbRef) {
+                    const todayStat = dbRef.dailyStats && Array.isArray(dbRef.dailyStats)
+                        ? dbRef.dailyStats.find(d => d.date === currentDay)
+                        : null;
+                    return {
+                        ...student,
+                        totalSolved: dbRef.totalSolved || 0,
+                        easySolved: dbRef.easySolved || 0,
+                        mediumSolved: dbRef.mediumSolved || 0,
+                        hardSolved: dbRef.hardSolved || 0,
+                        dailyStats: dbRef.dailyStats || [],
+                        todaySolved: todayStat ? todayStat.solved : 0
+                    };
+                }
+                return student;
+            });
+
+            // Add standalone DB students (manually added via UI)
+            for (const db of dbStudents) {
+                if (db.leetcodeUsername && !processedUsernames.has(db.leetcodeUsername)) {
+                    const todayStat = db.dailyStats && Array.isArray(db.dailyStats)
+                        ? db.dailyStats.find(d => d.date === currentDay)
+                        : null;
+                    leaderboard.push({
+                        _id: db._id,
+                        name: db.name,
+                        leetcodeUsername: db.leetcodeUsername,
+                        batch: db.batch,
+                        mentorEmail: db.mentorEmail,
+                        totalSolved: db.totalSolved || 0,
+                        easySolved: db.easySolved || 0,
+                        mediumSolved: db.mediumSolved || 0,
+                        hardSolved: db.hardSolved || 0,
+                        dailyStats: db.dailyStats || [],
+                        todaySolved: todayStat ? todayStat.solved : 0
+                    });
+                }
+            }
+
+            leaderboard.sort((a, b) => (b.totalSolved || 0) - (a.totalSolved || 0));
+            return res.json(leaderboard);
         }
 
         if (!fileName) return res.status(404).json({ error: 'No roster found.' });
 
         const roster = readExcel(fileName);
-
         const usernames = roster.map(s => s.leetcodeUsername).filter(Boolean);
         const dbStudents = await Student.findAll({
-            where: { leetcodeUsername: { [Op.in]: usernames } }
+            where: {
+                [Op.or]: [
+                    { leetcodeUsername: { [Op.in]: usernames } },
+                    { mentorEmail: email }
+                ]
+            }
         });
-
-        const currentDay = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
         const leaderboard = roster.map(student => {
             if (!student.leetcodeUsername) return student;
@@ -50,6 +116,28 @@ export const getLeaderboard = async (req, res) => {
             return student;
         });
 
+        // Add dynamically registered students belonging to this mentor missing from the excel file
+        for (const db of dbStudents) {
+            if (db.mentorEmail === email && db.leetcodeUsername && !usernames.includes(db.leetcodeUsername)) {
+                const todayStat = db.dailyStats && Array.isArray(db.dailyStats)
+                    ? db.dailyStats.find(d => d.date === currentDay)
+                    : null;
+                leaderboard.push({
+                    _id: db._id,
+                    name: db.name,
+                    leetcodeUsername: db.leetcodeUsername,
+                    batch: db.batch,
+                    mentorEmail: db.mentorEmail,
+                    totalSolved: db.totalSolved || 0,
+                    easySolved: db.easySolved || 0,
+                    mediumSolved: db.mediumSolved || 0,
+                    hardSolved: db.hardSolved || 0,
+                    dailyStats: db.dailyStats || [],
+                    todaySolved: todayStat ? todayStat.solved : 0
+                });
+            }
+        }
+
         leaderboard.sort((a, b) => (b.totalSolved || 0) - (a.totalSolved || 0));
         res.json(leaderboard);
     } catch (error) {
@@ -72,7 +160,9 @@ export const getDailyActivity = async (req, res) => {
             const students = await Student.findAll();
             roster = students.map(s => ({
                 name: s.name,
-                leetcodeUsername: s.leetcodeUsername
+                leetcodeUsername: s.leetcodeUsername,
+                mentorEmail: s.mentorEmail,
+                batch: s.batch
             }));
         } else {
             roster = readExcel(fileName);
@@ -99,7 +189,8 @@ export const getDailyActivity = async (req, res) => {
                 name: student.name,
                 username: student.leetcodeUsername,
                 solvedToday,
-                batch: student.batch || 'Mentor Assigned'
+                batch: student.batch || 'Mentor Assigned',
+                mentorEmail: student.mentorEmail || (dbRef ? dbRef.mentorEmail : null)
             };
         });
 
@@ -113,8 +204,8 @@ export const getDailyActivity = async (req, res) => {
 // Add new student
 export const addStudent = async (req, res) => {
     try {
-        const { name, email, leetcodeUrl, batch } = req.body;
-        const username = extractUsername(leetcodeUrl) || leetcodeUrl.split('/').pop();
+        const { name, email, leetcodeUrl, batch, mentorEmail } = req.body;
+        const username = extractUsername(leetcodeUrl) || leetcodeUrl.split('/').pop().replace(/\/$/, "");
 
         // Initial fetch to get baseline
         const stats = await fetchLeetCodeStats(username);
@@ -126,6 +217,7 @@ export const addStudent = async (req, res) => {
             leetcodeUrl,
             leetcodeUsername: username,
             batch,
+            mentorEmail: (req.user.role === 'super_admin' && mentorEmail) ? mentorEmail : req.user.email,
             totalSolved,
             easySolved: stats ? stats.easySolved : 0,
             mediumSolved: stats ? stats.mediumSolved : 0,
@@ -138,7 +230,45 @@ export const addStudent = async (req, res) => {
 
         res.status(201).json(student);
     } catch (error) {
+        console.error('Add Student Error:', error);
         res.status(500).json({ error: 'Failed to add student. Ensure email/username are unique.' });
+    }
+};
+
+// Update student
+export const updateStudent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, leetcodeUrl, batch, mentorEmail } = req.body;
+
+        const student = await Student.findByPk(id);
+        if (!student) return res.status(404).json({ error: 'Student not found' });
+
+        if (name) student.name = name;
+        if (email) student.email = email;
+        if (batch) student.batch = batch;
+        if (mentorEmail && req.user.role === 'super_admin') student.mentorEmail = mentorEmail;
+
+        if (leetcodeUrl && leetcodeUrl !== student.leetcodeUrl) {
+            const username = extractUsername(leetcodeUrl) || leetcodeUrl.split('/').pop().replace(/\/$/, "");
+            student.leetcodeUrl = leetcodeUrl;
+            student.leetcodeUsername = username;
+
+            // Optional: trigger a fetch for the new username
+            const stats = await fetchLeetCodeStats(username);
+            if (stats) {
+                student.totalSolved = stats.totalSolved;
+                student.easySolved = stats.easySolved;
+                student.mediumSolved = stats.mediumSolved;
+                student.hardSolved = stats.hardSolved;
+            }
+        }
+
+        await student.save();
+        res.json(student);
+    } catch (error) {
+        console.error('Update Student Error:', error);
+        res.status(500).json({ error: 'Update failed.' });
     }
 };
 
@@ -284,6 +414,7 @@ export const updateAllStudents = async () => {
         let updated = 0;
 
         for (const student of students) {
+            console.log(`[Update] Processing ${student.leetcodeUsername} (${student.name})...`);
             const stats = await fetchLeetCodeStats(student.leetcodeUsername);
             const recentSubmissions = await fetchRecentAcSubmissions(student.leetcodeUsername);
 
@@ -299,24 +430,33 @@ export const updateAllStudents = async () => {
                 });
 
                 const dailyStatsMap = new Map();
-                student.dailyStats.forEach(d => {
-                    dailyStatsMap.set(d.date, d.solved);
-                });
+                if (student.dailyStats && Array.isArray(student.dailyStats)) {
+                    student.dailyStats.forEach(d => {
+                        dailyStatsMap.set(d.date, d.solved);
+                    });
+                }
 
                 for (const [date, solvedSet] of Object.entries(distinctSolvedPerDay)) {
                     dailyStatsMap.set(date, solvedSet.size);
                 }
 
-                student.dailyStats = Array.from(dailyStatsMap, ([date, solved]) => ({ date, solved }));
-                student.dailyStats.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const newDailyStats = Array.from(dailyStatsMap, ([date, solved]) => ({ date, solved }));
+                newDailyStats.sort((a, b) => a.date.localeCompare(b.date)); // Sort string-wise for YYYY-MM-DD
 
+                student.dailyStats = newDailyStats;
                 student.totalSolved = stats.totalSolved;
                 student.easySolved = stats.easySolved;
                 student.mediumSolved = stats.mediumSolved;
                 student.hardSolved = stats.hardSolved;
                 student.lastUpdated = Date.now();
+
+                // Explicitly mark as changed to ensure Sequelize saves the JSON field
+                student.changed('dailyStats', true);
                 await student.save();
+                console.log(`[Update] Success for ${student.leetcodeUsername}: ${stats.totalSolved} total, ${newDailyStats.length} days of activity.`);
                 updated++;
+            } else {
+                console.warn(`[Update] Skip ${student.leetcodeUsername}: Fetch failed.`);
             }
             // Delay to avoid rate limits
             await new Promise(r => setTimeout(r, 1000));

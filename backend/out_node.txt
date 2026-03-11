@@ -1,9 +1,0 @@
-{
-  "_id": "nithishkrishna60",
-  "name": " Nithish krishna S",
-  "leetcodeUsername": "nithishkrishna60",
-  "batch": "Mentor 1",
-  "totalSolved": 0,
-  "leetcodeUrl": "https://leetcode.com/u/nithishkrishna60/",
-  "dailyStats": []
-}

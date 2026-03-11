@@ -11,6 +11,7 @@ export const setupCronJobs = () => {
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
             for (const student of students) {
+                console.log(`[CRON] Processing ${student.leetcodeUsername}...`);
                 const stats = await fetchLeetCodeStats(student.leetcodeUsername);
                 const recentSubmissions = await fetchRecentAcSubmissions(student.leetcodeUsername);
 
@@ -26,25 +27,30 @@ export const setupCronJobs = () => {
                     });
 
                     const dailyStatsMap = new Map();
-                    student.dailyStats.forEach(d => {
-                        dailyStatsMap.set(d.date, d.solved);
-                    });
+                    if (student.dailyStats && Array.isArray(student.dailyStats)) {
+                        student.dailyStats.forEach(d => {
+                            dailyStatsMap.set(d.date, d.solved);
+                        });
+                    }
 
                     for (const [date, solvedSet] of Object.entries(distinctSolvedPerDay)) {
                         dailyStatsMap.set(date, solvedSet.size);
                     }
 
-                    student.dailyStats = Array.from(dailyStatsMap, ([date, solved]) => ({ date, solved }));
-                    student.dailyStats.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const newDailyStats = Array.from(dailyStatsMap, ([date, solved]) => ({ date, solved }));
+                    newDailyStats.sort((a, b) => a.date.localeCompare(b.date));
 
+                    student.dailyStats = newDailyStats;
                     student.totalSolved = stats.totalSolved;
                     student.easySolved = stats.easySolved;
                     student.mediumSolved = stats.mediumSolved;
                     student.hardSolved = stats.hardSolved;
                     student.lastUpdated = Date.now();
-                    await student.save();
-                }
 
+                    student.changed('dailyStats', true);
+                    await student.save();
+                    console.log(`[CRON] Updated ${student.leetcodeUsername}`);
+                }
                 // Wait 2 secs per student to avoid rate-limiting
                 await new Promise(r => setTimeout(r, 2000));
             }

@@ -11,8 +11,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+import { seedMentors } from './controllers/authController.js';
+
 // Connect to Database
-connectDB();
+connectDB().then(() => {
+    seedMentors();
+});
 
 // Setup Cron Jobs
 setupCronJobs();

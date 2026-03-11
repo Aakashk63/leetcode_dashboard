@@ -16,7 +16,7 @@ export const fetchLeetCodeStats = async (username) => {
           reputation
         }
       }
-      recentAcSubmissionList(username: $username, limit: 100) {
+      recentAcSubmissionList(username: $username, limit: 200) {
         id
         title
         timestamp
@@ -67,7 +67,7 @@ export const fetchLeetCodeStats = async (username) => {
 export const fetchRecentAcSubmissions = async (username) => {
   const query = `
     query getRecentAc($username: String!) {
-      recentAcSubmissionList(username: $username, limit: 200) {
+      recentAcSubmissionList(username: $username, limit: 300) {
         id
         title
         timestamp
@@ -90,7 +90,7 @@ export const fetchRecentAcSubmissions = async (username) => {
 export const getDailySolved = async (username, selectedDate) => {
   const query = `
     query getRecentAc($username: String!) {
-      recentAcSubmissionList(username: $username, limit: 100) {
+      recentAcSubmissionList(username: $username, limit: 200) {
         id
         title
         timestamp

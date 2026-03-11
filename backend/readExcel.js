@@ -74,16 +74,26 @@ export function readExcel(fileName) {
             }
 
             const nameKey = keys.find(k => k.toLowerCase().includes('name')) || Object.keys(row)[1];
-            const studentName = nameKey ? row[nameKey] : 'Unknown';
+            let studentName = nameKey ? row[nameKey] : 'Unknown';
+            if (studentName) studentName = studentName.toString().trim();
 
-            console.log(`[readExcel] ${fileName} -> Student: ${studentName} | Raw: ${rawLeetcode} | Parsed: ${username}`);
+            const totalSolvedKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '').includes('solved'));
+            const totalSolved = totalSolvedKey ? parseInt(row[totalSolvedKey]) || 0 : 0;
+
+            const batchKey = keys.find(k => {
+                const low = k.toLowerCase().replace(/\s+/g, '');
+                return low.includes('year') || low.includes('batch') || low.includes('mentor');
+            });
+            const batch = (batchKey && row[batchKey]) ? row[batchKey].toString().trim() : 'Default';
+
+            console.log(`[readExcel] ${fileName} -> Student: ${studentName} | Username: ${username} | Batch: ${batch}`);
 
             return {
                 _id: username || Math.random().toString(36).substring(2, 9),
                 name: studentName,
                 leetcodeUsername: username,
-                batch: row['Year'] || row['Mentor'] || row['Mentor 4'] || 'Default',
-                totalSolved: row['Total Solved'] || 0,
+                batch: batch,
+                totalSolved: totalSolved,
                 leetcodeUrl: rawLeetcode || '',
                 dailyStats: [] // Technical requirement for frontend rendering
             };
