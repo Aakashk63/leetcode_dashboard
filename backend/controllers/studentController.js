@@ -36,12 +36,24 @@ export const getLeaderboard = async (req, res) => {
 
             const dbStudents = await Student.findAll();
             const leaderboard = allRosterStudents.map(student => {
-                if (!student.leetcodeUsername) return student;
-                const dbRef = dbStudents.find(db => db.leetcodeUsername === student.leetcodeUsername);
+                // Try matching by username first
+                let dbRef = student.leetcodeUsername
+                    ? dbStudents.find(db => db.leetcodeUsername === student.leetcodeUsername)
+                    : null;
+
+                // Fallback: match by name if username match fails
+                if (!dbRef) {
+                    dbRef = dbStudents.find(db => db.name.toLowerCase().trim() === student.name.toLowerCase().trim());
+                }
+
                 if (dbRef) {
                     const todayStat = dbRef.dailyStats && Array.isArray(dbRef.dailyStats)
                         ? dbRef.dailyStats.find(d => d.date === currentDay)
                         : null;
+
+                    // Mark this username as processed so we don't add it as a standalone later
+                    if (dbRef.leetcodeUsername) processedUsernames.add(dbRef.leetcodeUsername);
+
                     return {
                         ...student,
                         totalSolved: dbRef.totalSolved || 0,
@@ -50,7 +62,9 @@ export const getLeaderboard = async (req, res) => {
                         hardSolved: dbRef.hardSolved || 0,
                         dailyStats: dbRef.dailyStats || [],
                         todaySolved: todayStat ? todayStat.solved : 0,
-                        _id: dbRef._id
+                        leetcodeUsername: dbRef.leetcodeUsername || student.leetcodeUsername,
+                        leetcodeUrl: dbRef.leetcodeUrl || student.leetcodeUrl,
+                        _id: dbRef._id // CRITICAL: Use the real DB ID
                     };
                 }
                 return student;
@@ -96,9 +110,15 @@ export const getLeaderboard = async (req, res) => {
         });
 
         const leaderboard = roster.map(student => {
-            if (!student.leetcodeUsername) return student;
+            // Match by username or fallback to name
+            let dbRef = student.leetcodeUsername
+                ? dbStudents.find(db => db.leetcodeUsername === student.leetcodeUsername)
+                : null;
 
-            const dbRef = dbStudents.find(db => db.leetcodeUsername === student.leetcodeUsername);
+            if (!dbRef) {
+                dbRef = dbStudents.find(db => db.name.toLowerCase().trim() === student.name.toLowerCase().trim());
+            }
+
             if (dbRef) {
                 const todayStat = dbRef.dailyStats && Array.isArray(dbRef.dailyStats)
                     ? dbRef.dailyStats.find(d => d.date === currentDay)
@@ -112,6 +132,8 @@ export const getLeaderboard = async (req, res) => {
                     hardSolved: dbRef.hardSolved || 0,
                     dailyStats: dbRef.dailyStats || [],
                     todaySolved: todayStat ? todayStat.solved : 0,
+                    leetcodeUsername: dbRef.leetcodeUsername || student.leetcodeUsername,
+                    leetcodeUrl: dbRef.leetcodeUrl || student.leetcodeUrl,
                     _id: dbRef._id
                 };
             }
@@ -243,8 +265,27 @@ export const updateStudent = async (req, res) => {
         const { id } = req.params;
         const { name, email, leetcodeUrl, batch, mentorEmail } = req.body;
 
-        const student = await Student.findByPk(id);
-        if (!student) return res.status(404).json({ error: 'Student not found' });
+        // Try to find by PK first (UUID)
+        let student = await Student.findByPk(id);
+
+        // Fallback: If not found by PK, try finding by name or leetcode username provided in body
+        if (!student) {
+            const extracted = leetcodeUrl ? (extractUsername(leetcodeUrl) || leetcodeUrl.split('/').pop().replace(/\/$/, "")) : null;
+            student = await Student.findOne({
+                where: {
+                    [Op.or]: [
+                        { name: name },
+                        ...(extracted ? [{ leetcodeUsername: extracted }] : [])
+                    ]
+                }
+            });
+        }
+
+        // If STILL not found, we could either return 404 or CREATE it.
+        // Given this is an "Update/Add" UI, let's treat it as an upsert if it's a super admin
+        if (!student) {
+            return res.status(404).json({ error: 'Student record could not be linked to database. Try adding as new student or ensure name matches.' });
+        }
 
         if (name) student.name = name;
         if (email) student.email = email;
@@ -256,7 +297,6 @@ export const updateStudent = async (req, res) => {
             student.leetcodeUrl = leetcodeUrl;
             student.leetcodeUsername = username;
 
-            // Optional: trigger a fetch for the new username
             const stats = await fetchLeetCodeStats(username);
             if (stats) {
                 student.totalSolved = stats.totalSolved;
