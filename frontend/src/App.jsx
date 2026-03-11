@@ -8,6 +8,10 @@ import { loginUser } from './services/api';
 import { Rocket, ShieldCheck, AlertCircle, LogOut } from 'lucide-react';
 
 const Header = ({ setIsAuthenticated }) => {
+  const role = localStorage.getItem('role');
+  const isSuperAdmin = role === 'super_admin';
+  const isMentor = role === 'mentor';
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
@@ -16,21 +20,26 @@ const Header = ({ setIsAuthenticated }) => {
   return (
     <nav className="w-full relative z-40 bg-[#0B1220]/90 backdrop-blur-xl border-b border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.6)]">
       <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
-        <Link to="/" className={`flex items-center space-x-3 transition-transform hover:scale-105 group p-1 ${localStorage.getItem('role') === 'super_admin' ? 'text-blue-500' : 'text-accent'}`}>
-          <Rocket size={26} className={`${localStorage.getItem('role') === 'super_admin' ? 'text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]' : 'text-accent drop-shadow-[0_0_10px_rgba(255,59,59,0.8)]'} group-hover:animate-pulse-fast`} />
+        <Link to="/" className={`flex items-center space-x-3 transition-transform hover:scale-105 group p-1 ${isSuperAdmin ? 'text-blue-500' : 'text-accent'}`}>
+          <Rocket size={26} className={`${isSuperAdmin ? 'text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]' : 'text-accent drop-shadow-[0_0_10px_rgba(255,59,59,0.8)]'} group-hover:animate-pulse-fast`} />
           <h1 className="text-2xl md:text-3xl font-black tracking-widest text-white uppercase italic drop-shadow-lg">
-            CHAMPIONS<span className={localStorage.getItem('role') === 'super_admin' ? 'text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'text-accent drop-shadow-[0_0_15px_rgba(255,59,59,0.5)]'}>ARENA</span>
+            CHAMPIONS<span className={isSuperAdmin ? 'text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'text-accent drop-shadow-[0_0_15px_rgba(255,59,59,0.5)]'}>ARENA</span>
           </h1>
         </Link>
 
         <div className="flex items-center gap-4">
-          {localStorage.getItem('role') === 'super_admin' && (
+          {isSuperAdmin && (
             <Link to="/admin" className="px-6 py-2 rounded-full text-sm font-black tracking-widest uppercase transition-all flex items-center gap-2 bg-blue-500/10 border border-blue-500/40 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]">
               <ShieldCheck size={16} /> Master Control
             </Link>
           )}
-          <Link to="/analytics" className={`px-6 py-2 rounded-full text-sm font-black tracking-widest uppercase transition-all flex items-center gap-2 ${localStorage.getItem('role') === 'super_admin' ? 'bg-blue-500/10 border border-blue-500/40 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]' : 'bg-accent/10 border border-accent/40 text-white hover:bg-accent/20 hover:border-accent hover:shadow-[0_0_20px_rgba(255,59,59,0.6)]'}`}>
-            <div className={`w-2 h-2 rounded-full hidden sm:block ${localStorage.getItem('role') === 'super_admin' ? 'bg-blue-500 animate-pulse-fast shadow-[0_0_8px_rgba(59,130,246,1)]' : 'bg-accent animate-pulse-fast shadow-[0_0_8px_rgba(255,59,59,1)]'}`}></div>
+          {isMentor && (
+            <Link to="/admin" className="px-6 py-2 rounded-full text-sm font-black tracking-widest uppercase transition-all flex items-center gap-2 bg-purple-500/10 border border-purple-500/40 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)]">
+              <ShieldCheck size={16} /> Mentor Control
+            </Link>
+          )}
+          <Link to="/analytics" className={`px-6 py-2 rounded-full text-sm font-black tracking-widest uppercase transition-all flex items-center gap-2 ${isSuperAdmin ? 'bg-blue-500/10 border border-blue-500/40 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]' : 'bg-accent/10 border border-accent/40 text-white hover:bg-accent/20 hover:border-accent hover:shadow-[0_0_20px_rgba(255,59,59,0.6)]'}`}>
+            <div className={`w-2 h-2 rounded-full hidden sm:block ${isSuperAdmin ? 'bg-blue-500 animate-pulse-fast shadow-[0_0_8px_rgba(59,130,246,1)]' : 'bg-accent animate-pulse-fast shadow-[0_0_8px_rgba(255,59,59,1)]'}`}></div>
             Progress
           </Link>
           <button onClick={handleLogout} className="p-2 bg-slate-800/50 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-transparent hover:border-red-500/30 rounded-full transition-all">
