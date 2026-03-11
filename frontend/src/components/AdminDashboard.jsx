@@ -18,6 +18,7 @@ const AdminDashboard = () => {
     // Student Form State (Add/Edit)
     const [formData, setFormData] = useState({ name: '', email: '', leetcodeUrl: '', batch: '', mentorEmail: '' });
     const [editingId, setEditingId] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchStudents();
@@ -255,41 +256,62 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className={`glass-card p-6 flex flex-col h-full bg-[#0B1220]/50 border-white/5`}>
-                    <h2 className="text-lg font-bold mb-4 text-slate-200 drop-shadow-md">
-                        {isSuperAdmin ? 'Global Student Directory' : 'My Student Directory'}
-                    </h2>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+                        <h2 className="text-lg font-bold text-slate-200 drop-shadow-md whitespace-nowrap">
+                            {isSuperAdmin ? 'Global Student Directory' : 'My Student Directory'}
+                        </h2>
+                        <div className="relative w-full md:max-w-xs">
+                            <input
+                                type="text"
+                                placeholder="Search by name or username..."
+                                className="w-full bg-black/40 border border-white/10 rounded-lg py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:border-blue-500/50 transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                                <User size={14} />
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="overflow-y-auto pr-2 custom-scrollbar h-[600px]">
                         <ul className="space-y-3">
-                            {students.map(s => (
-                                <li key={s._id} className={`flex justify-between items-center p-4 bg-slate-800/30 rounded-xl border ${editingId === s._id ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-white/5'} hover:bg-slate-700/40 transition-all group`}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold border border-white/10 group-hover:border-blue-500/50 transition-colors">
-                                            {s.name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-slate-100 text-sm">{s.name}</div>
-                                            <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">
-                                                @{s.leetcodeUsername} • {s.batch}
+                            {students
+                                .filter(s =>
+                                    s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    s.leetcodeUsername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    s.batch?.toLowerCase().includes(searchTerm.toLowerCase())
+                                )
+                                .map(s => (
+                                    <li key={s._id} className={`flex justify-between items-center p-4 bg-slate-800/30 rounded-xl border ${editingId === s._id ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-white/5'} hover:bg-slate-700/40 transition-all group`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold border border-white/10 group-hover:border-blue-500/50 transition-colors">
+                                                {s.name.charAt(0).toUpperCase()}
                                             </div>
-                                            {isSuperAdmin && (
-                                                <div className="text-[10px] text-blue-500/70 font-medium truncate max-w-[150px]">
-                                                    {s.mentorEmail || 'Unassigned'}
+                                            <div>
+                                                <div className="font-semibold text-slate-100 text-sm">{s.name}</div>
+                                                <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">
+                                                    @{s.leetcodeUsername} • {s.batch}
                                                 </div>
+                                                {isSuperAdmin && (
+                                                    <div className="text-[10px] text-blue-500/70 font-medium truncate max-w-[150px]">
+                                                        {s.mentorEmail || 'Unassigned'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => startEdit(s)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 p-2 rounded-lg transition-colors">
+                                                <Edit3 size={16} />
+                                            </button>
+                                            {isSuperAdmin && (
+                                                <button onClick={() => handleDelete(s._id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors">
+                                                    <Trash2 size={16} />
+                                                </button>
                                             )}
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => startEdit(s)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 p-2 rounded-lg transition-colors">
-                                            <Edit3 size={16} />
-                                        </button>
-                                        {isSuperAdmin && (
-                                            <button onClick={() => handleDelete(s._id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors">
-                                                <Trash2 size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </li>
-                            ))}
+                                    </li>
+                                ))}
                             {students.length === 0 && (
                                 <div className="text-center text-slate-600 py-20 font-medium tracking-widest uppercase text-xs flex flex-col items-center gap-3">
                                     <User size={40} className="text-slate-800" />
