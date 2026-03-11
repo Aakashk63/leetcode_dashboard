@@ -51,11 +51,13 @@ export const getLeaderboard = async (req, res) => {
                         ? dbRef.dailyStats.find(d => d.date === currentDay)
                         : null;
 
-                    // Mark this username as processed so we don't add it as a standalone later
                     if (dbRef.leetcodeUsername) processedUsernames.add(dbRef.leetcodeUsername);
 
                     return {
                         ...student,
+                        name: dbRef.name || student.name, // DB name is the source of truth
+                        batch: dbRef.batch || student.batch,
+                        mentorEmail: dbRef.mentorEmail || student.mentorEmail,
                         totalSolved: dbRef.totalSolved || 0,
                         easySolved: dbRef.easySolved || 0,
                         mediumSolved: dbRef.mediumSolved || 0,
@@ -64,7 +66,7 @@ export const getLeaderboard = async (req, res) => {
                         todaySolved: todayStat ? todayStat.solved : 0,
                         leetcodeUsername: dbRef.leetcodeUsername || student.leetcodeUsername,
                         leetcodeUrl: dbRef.leetcodeUrl || student.leetcodeUrl,
-                        _id: dbRef._id // CRITICAL: Use the real DB ID
+                        _id: dbRef._id
                     };
                 }
                 return student;
@@ -126,6 +128,9 @@ export const getLeaderboard = async (req, res) => {
 
                 return {
                     ...student,
+                    name: dbRef.name || student.name,
+                    batch: dbRef.batch || student.batch,
+                    mentorEmail: dbRef.mentorEmail || student.mentorEmail,
                     totalSolved: dbRef.totalSolved || 0,
                     easySolved: dbRef.easySolved || 0,
                     mediumSolved: dbRef.mediumSolved || 0,
@@ -281,28 +286,37 @@ export const updateStudent = async (req, res) => {
             });
         }
 
-        // If STILL not found, we could either return 404 or CREATE it.
-        // Given this is an "Update/Add" UI, let's treat it as an upsert if it's a super admin
+        // If STILL not found, let's CREATE it (Upsert)
         if (!student) {
-            return res.status(404).json({ error: 'Student record could not be linked to database. Try adding as new student or ensure name matches.' });
-        }
+            const username = leetcodeUrl ? (extractUsername(leetcodeUrl) || leetcodeUrl.split('/').pop().replace(/\/$/, "")) : "";
+            student = await Student.create({
+                name: name,
+                email: email || `${Date.now()}@placeholder.com`,
+                leetcodeUrl: leetcodeUrl || "",
+                leetcodeUsername: username || "",
+                batch: batch || "Default",
+                mentorEmail: (mentorEmail && req.user.role === 'super_admin') ? mentorEmail : req.user.email
+            });
+            console.log(`[UpdateStudent] Created new student record for ${name} as part of update flow.`);
+        } else {
+            // Update existing fields
+            if (name) student.name = name;
+            if (email) student.email = email;
+            if (batch) student.batch = batch;
+            if (mentorEmail && req.user.role === 'super_admin') student.mentorEmail = mentorEmail;
 
-        if (name) student.name = name;
-        if (email) student.email = email;
-        if (batch) student.batch = batch;
-        if (mentorEmail && req.user.role === 'super_admin') student.mentorEmail = mentorEmail;
+            if (leetcodeUrl && leetcodeUrl !== student.leetcodeUrl) {
+                const username = extractUsername(leetcodeUrl) || leetcodeUrl.split('/').pop().replace(/\/$/, "");
+                student.leetcodeUrl = leetcodeUrl;
+                student.leetcodeUsername = username;
 
-        if (leetcodeUrl && leetcodeUrl !== student.leetcodeUrl) {
-            const username = extractUsername(leetcodeUrl) || leetcodeUrl.split('/').pop().replace(/\/$/, "");
-            student.leetcodeUrl = leetcodeUrl;
-            student.leetcodeUsername = username;
-
-            const stats = await fetchLeetCodeStats(username);
-            if (stats) {
-                student.totalSolved = stats.totalSolved;
-                student.easySolved = stats.easySolved;
-                student.mediumSolved = stats.mediumSolved;
-                student.hardSolved = stats.hardSolved;
+                const stats = await fetchLeetCodeStats(username);
+                if (stats) {
+                    student.totalSolved = stats.totalSolved;
+                    student.easySolved = stats.easySolved;
+                    student.mediumSolved = stats.mediumSolved;
+                    student.hardSolved = stats.hardSolved;
+                }
             }
         }
 
