@@ -49,7 +49,8 @@ export const getLeaderboard = async (req, res) => {
                         mediumSolved: dbRef.mediumSolved || 0,
                         hardSolved: dbRef.hardSolved || 0,
                         dailyStats: dbRef.dailyStats || [],
-                        todaySolved: todayStat ? todayStat.solved : 0
+                        todaySolved: todayStat ? todayStat.solved : 0,
+                        _id: dbRef._id
                     };
                 }
                 return student;
@@ -110,7 +111,8 @@ export const getLeaderboard = async (req, res) => {
                     mediumSolved: dbRef.mediumSolved || 0,
                     hardSolved: dbRef.hardSolved || 0,
                     dailyStats: dbRef.dailyStats || [],
-                    todaySolved: todayStat ? todayStat.solved : 0
+                    todaySolved: todayStat ? todayStat.solved : 0,
+                    _id: dbRef._id
                 };
             }
             return student;
