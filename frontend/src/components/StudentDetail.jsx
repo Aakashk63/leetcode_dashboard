@@ -41,6 +41,8 @@ const StudentDetail = () => {
     const { username } = useParams();
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
+    const role = localStorage.getItem('role');
+    const isSuperAdmin = role === 'super_admin';
 
     useEffect(() => {
         const fetchStudent = async () => {
@@ -84,14 +86,14 @@ const StudentDetail = () => {
 
     return (
         <div className="space-y-6 slide-in-bottom relative z-10">
-            <Link to="/" className="inline-flex items-center space-x-2 text-slate-400 hover:text-accent transition-colors">
+            <Link to="/" className={`inline-flex items-center space-x-2 text-slate-400 transition-colors ${isSuperAdmin ? 'hover:text-blue-400' : 'hover:text-accent'}`}>
                 <ArrowLeft size={16} /><span>Back to Leaderboard</span>
             </Link>
 
-            <div className="glass-card p-8 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+            <div className={`glass-card p-8 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden ${isSuperAdmin ? 'glass-card-hover-blue' : 'glass-card-hover-red'}`}>
+                <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none ${isSuperAdmin ? 'bg-blue-500/10' : 'bg-accent/10'}`}></div>
 
-                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-accent to-blue-500 flex items-center justify-center text-white text-4xl font-bold shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                <div className={`w-24 h-24 rounded-full bg-gradient-to-tr flex items-center justify-center text-white text-4xl font-bold border-2 ${isSuperAdmin ? 'from-blue-600 to-cyan-500 shadow-[0_0_20px_rgba(59,130,246,0.4)] border-blue-400' : 'from-accent to-orange-500 shadow-[0_0_20px_rgba(255,59,59,0.4)] border-accent'}`}>
                     {student.name.charAt(0).toUpperCase()}
                 </div>
 
@@ -101,7 +103,7 @@ const StudentDetail = () => {
                         <span className="px-3 py-1 bg-slate-800 rounded-full border border-slate-700 text-slate-300">
                             Batch: {student.batch}
                         </span>
-                        <a href={`https://leetcode.com/u/${student.leetcodeUsername}/`} target="_blank" rel="noreferrer" className="text-accent hover:underline flex items-center space-x-1">
+                        <a href={`https://leetcode.com/u/${student.leetcodeUsername}/`} target="_blank" rel="noreferrer" className={`hover:underline flex items-center space-x-1 ${isSuperAdmin ? 'text-blue-400' : 'text-accent'}`}>
                             <Code2 size={14} /> <span>@{student.leetcodeUsername}</span>
                         </a>
                     </div>
@@ -109,16 +111,16 @@ const StudentDetail = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <StatsCard title="Total Solved" value={student.totalSolved} color="text-accent" icon={<Award className="text-accent" size={24} />} />
+                <StatsCard title="Total Solved" value={student.totalSolved} color={isSuperAdmin ? "text-blue-400" : "text-accent"} icon={<Award className={isSuperAdmin ? "text-blue-400" : "text-accent"} size={24} />} />
                 <StatsCard title="Today" value={student.todaySolved || 0} color="text-orange-400" icon={<Zap className="text-orange-400" size={24} />} />
                 <StatsCard title="Easy" value={student.easySolved} color="text-green-400" icon={<Target className="text-green-400" size={24} />} />
                 <StatsCard title="Medium" value={student.mediumSolved} color="text-yellow-400" icon={<Target className="text-yellow-400" size={24} />} />
                 <StatsCard title="Hard" value={student.hardSolved} color="text-red-400" icon={<Target className="text-red-400" size={24} />} />
             </div>
 
-            <div className="glass-card p-6">
+            <div className={`glass-card p-6 ${isSuperAdmin ? 'glass-card-hover-blue' : 'glass-card-hover-red'}`}>
                 <h2 className="text-lg font-semibold text-slate-200 mb-6 flex items-center space-x-2">
-                    <BarChart className="text-accent" size={18} />
+                    <BarChart className={isSuperAdmin ? "text-blue-400" : "text-accent"} size={18} />
                     <span>7-Day Activity</span>
                 </h2>
                 <div className="h-64 w-full">

@@ -8,6 +8,9 @@ const Leaderboard = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState('high'); // 'high', 'low'
+    const role = localStorage.getItem('role');
+    const isSuperAdmin = role === 'super_admin';
+
     useEffect(() => {
         let isUpdating = false;
         const fetchData = async () => {
@@ -101,13 +104,13 @@ const Leaderboard = () => {
     return (
         <div className="space-y-12 slide-in-bottom relative z-10 font-sans pb-10">
             {/* Spotlight / Ambient Backgrounds */}
-            <div className="absolute top-0 left-1/2 min-w-[800px] h-[400px] bg-accent/5 blur-[150px] -translate-x-1/2 pointer-events-none rounded-full"></div>
-            <div className="absolute top-[20%] left-1/2 min-w-[300px] h-[300px] bg-accent/10 blur-[100px] -translate-x-1/2 pointer-events-none rounded-full"></div>
+            <div className={`absolute top-0 left-1/2 min-w-[800px] h-[400px] blur-[150px] -translate-x-1/2 pointer-events-none rounded-full ${isSuperAdmin ? 'bg-blue-500/10' : 'bg-accent/5'}`}></div>
+            <div className={`absolute top-[20%] left-1/2 min-w-[300px] h-[300px] blur-[100px] -translate-x-1/2 pointer-events-none rounded-full ${isSuperAdmin ? 'bg-blue-500/15' : 'bg-accent/10'}`}></div>
 
             {/* HEADER SECTION */}
             <div className="flex flex-col items-center space-y-6">
                 <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 drop-shadow-md uppercase italic tracking-widest text-center">
-                    Leader<span className="text-accent">Board</span>
+                    Leader<span className={isSuperAdmin ? "text-blue-500" : "text-accent"}>Board</span>
                 </h2>
             </div>
 
@@ -120,7 +123,7 @@ const Leaderboard = () => {
                             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-gray-500 to-gray-300 flex items-center justify-center text-dark font-black text-xl shadow-[0_5px_15px_rgba(0,0,0,0.5)] border-2 border-gray-400 z-10">
                                 {topThree[0].name.charAt(0).toUpperCase()}
                             </div>
-                            <span className="mt-2 text-white font-bold tracking-wide truncate max-w-[120px] group-hover:text-accent transition-colors">{topThree[0].name}</span>
+                            <span className={`mt-2 text-white font-bold tracking-wide truncate max-w-[120px] transition-colors ${isSuperAdmin ? 'group-hover:text-blue-400' : 'group-hover:text-accent'}`}>{topThree[0].name}</span>
                             <div className="bg-darker border border-white/10 px-3 py-1 rounded-full text-gray-300 text-xs font-bold mt-2 shadow-inner flex items-center gap-1">
                                 <Flame size={12} className="text-gray-400" />
                                 {topThree[0].totalSolved}
@@ -137,19 +140,19 @@ const Leaderboard = () => {
                 {topThree[1] && (
                     <Link to={`/student/${topThree[1].leetcodeUsername}`} className="flex flex-col items-center w-full md:w-56 order-1 md:order-2 z-10 animate-float group">
                         <div className="relative mb-6 flex flex-col items-center">
-                            <Crown className="text-gold w-10 h-10 -mb-3 z-20 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]" />
-                            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-accent to-orange-500 flex items-center justify-center text-white font-black text-3xl shadow-[0_0_30px_rgba(255,59,59,0.5)] border-2 border-accent relative z-10 group-hover:scale-105 transition-transform">
+                            <Crown className={`${isSuperAdmin ? 'text-blue-400' : 'text-gold'} w-10 h-10 -mb-3 z-20 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]`} />
+                            <div className={`w-24 h-24 rounded-full bg-gradient-to-tr flex items-center justify-center text-white font-black text-3xl z-10 group-hover:scale-105 transition-transform border-2 ${isSuperAdmin ? 'from-blue-600 to-cyan-500 shadow-[0_0_30px_rgba(59,130,246,0.5)] border-blue-400' : 'from-accent to-orange-500 shadow-[0_0_30px_rgba(255,59,59,0.5)] border-accent'}`}>
                                 {topThree[1].name.charAt(0).toUpperCase()}
                             </div>
-                            <span className="mt-4 text-white font-black text-lg tracking-wide drop-shadow-md truncate max-w-[150px] group-hover:text-accent transition-colors">{topThree[1].name}</span>
-                            <div className="bg-accent/20 border border-accent/50 px-4 py-1.5 rounded-full text-white text-sm font-black mt-2 shadow-[0_0_15px_rgba(255,59,59,0.4)] flex items-center gap-1">
-                                <Flame size={14} className="text-accent animate-pulse-fast" />
+                            <span className={`mt-4 text-white font-black text-lg tracking-wide drop-shadow-md truncate max-w-[150px] transition-colors ${isSuperAdmin ? 'group-hover:text-blue-400' : 'group-hover:text-accent'}`}>{topThree[1].name}</span>
+                            <div className={`px-4 py-1.5 rounded-full text-white text-sm font-black mt-2 flex items-center gap-1 border ${isSuperAdmin ? 'bg-blue-500/20 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'bg-accent/20 border-accent/50 shadow-[0_0_15px_rgba(255,59,59,0.4)]'}`}>
+                                <Flame size={14} className={`${isSuperAdmin ? 'text-blue-400' : 'text-accent'} animate-pulse-fast`} />
                                 {topThree[1].totalSolved}
                             </div>
                         </div>
-                        <div className="w-full h-40 md:h-56 bg-gradient-to-t from-[#0B1220] to-[#251015] border-t-2 border-x border-accent/60 rounded-t-xl relative overflow-hidden shadow-[inset_0_5px_20px_rgba(255,59,59,0.2),0_-5px_30px_rgba(255,59,59,0.15)] flex justify-center before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-1/2 before:bg-gradient-to-b before:from-accent/20 before:to-transparent">
-                            <div className="absolute top-2 w-16 h-1 bg-accent/50 rounded-full shadow-[0_0_10px_rgba(255,59,59,1)]"></div>
-                            <span className="text-6xl font-black text-accent/20 mt-8 select-none drop-shadow-md">1ST</span>
+                        <div className={`w-full h-40 md:h-56 bg-gradient-to-t border-x rounded-t-xl relative overflow-hidden flex justify-center before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-1/2 before:bg-gradient-to-b before:to-transparent ${isSuperAdmin ? 'from-[#0B1220] to-[#101525] border-blue-500/60 shadow-[inset_0_5px_20px_rgba(59,130,246,0.2),0_-5px_30px_rgba(59,130,246,0.15)] before:from-blue-500/20' : 'from-[#0B1220] to-[#251015] border-accent/60 shadow-[inset_0_5px_20px_rgba(255,59,59,0.2),0_-5px_30px_rgba(255,59,59,0.15)] before:from-accent/20'}`}>
+                            <div className={`absolute top-2 w-16 h-1 rounded-full ${isSuperAdmin ? 'bg-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,1)]' : 'bg-accent/50 shadow-[0_0_10px_rgba(255,59,59,1)]'}`}></div>
+                            <span className={`text-6xl font-black mt-8 select-none drop-shadow-md ${isSuperAdmin ? 'text-blue-500/20' : 'text-accent/20'}`}>1ST</span>
                         </div>
                     </Link>
                 )}
@@ -195,9 +198,9 @@ const Leaderboard = () => {
                     <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
                         <button
                             onClick={() => setSortOrder(prev => prev === 'high' ? 'low' : 'high')}
-                            className="bg-black/40 hover:bg-black/60 border border-white/10 hover:border-accent/50 rounded-xl px-4 py-2 flex items-center gap-2 text-sm font-bold text-slate-300 transition-all whitespace-nowrap"
+                            className={`bg-black/40 hover:bg-black/60 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-2 text-sm font-bold text-slate-300 transition-all whitespace-nowrap ${isSuperAdmin ? 'hover:border-blue-500/50' : 'hover:border-accent/50'}`}
                         >
-                            <ArrowUpDown size={16} className={sortOrder === 'low' ? 'text-accent' : 'text-muted'} />
+                            <ArrowUpDown size={16} className={sortOrder === 'low' ? (isSuperAdmin ? 'text-blue-400' : 'text-accent') : 'text-muted'} />
                             Sort: {sortOrder === 'high' ? 'High to Low' : 'Low to High'}
                         </button>
 
@@ -228,7 +231,7 @@ const Leaderboard = () => {
                                         {rank}
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white text-xs font-bold border border-white/10 group-hover:border-accent/50 transition-colors">
+                                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white text-xs font-bold border border-white/10 transition-colors ${isSuperAdmin ? 'group-hover:border-blue-500/50' : 'group-hover:border-accent/50'}`}>
                                             {student.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div>
@@ -236,7 +239,7 @@ const Leaderboard = () => {
                                             <div className="text-xs text-muted">@{student.leetcodeUsername}</div>
                                         </div>
                                     </div>
-                                    <div className="text-center font-black text-accent drop-shadow-[0_0_8px_rgba(255,59,59,0)] group-hover:drop-shadow-[0_0_8px_rgba(255,59,59,0.5)] transition-all">
+                                    <div className={`text-center font-black transition-all ${isSuperAdmin ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0)] group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'text-accent drop-shadow-[0_0_8px_rgba(255,59,59,0)] group-hover:drop-shadow-[0_0_8px_rgba(255,59,59,0.5)]'}`}>
                                         {student.totalSolved}
                                     </div>
                                     <div className="flex justify-center">

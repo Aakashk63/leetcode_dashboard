@@ -69,11 +69,11 @@ const LoginScreen = ({ onLogin }) => {
         {isMaster ? 'Mentor Login' : 'Master Control'}
       </button>
 
-      <div className="absolute top-0 left-1/2 min-w-[800px] h-[400px] bg-accent/5 blur-[150px] -translate-x-1/2 pointer-events-none rounded-full"></div>
+      <div className={`absolute top-0 left-1/2 min-w-[800px] h-[400px] blur-[150px] -translate-x-1/2 pointer-events-none rounded-full ${isMaster ? 'bg-blue-500/10' : 'bg-accent/5'}`}></div>
 
-      <form onSubmit={handleLogin} className="glass-card p-10 max-w-sm w-full space-y-6 bg-darker/60 backdrop-blur-md border border-white/5 shadow-2xl rounded-2xl relative z-20">
+      <form onSubmit={handleLogin} className={`glass-card p-10 max-w-sm w-full space-y-6 bg-darker/60 backdrop-blur-md border border-white/5 shadow-2xl rounded-2xl relative z-20 ${isMaster ? 'glass-card-hover-blue' : 'glass-card-hover-red'}`}>
         <div className="flex flex-col items-center justify-center space-y-3 mb-4">
-          <ShieldCheck size={48} className={`drop-shadow-[0_0_15px_rgba(255,59,59,0.5)] ${isMaster ? 'text-blue-500' : 'text-accent'}`} />
+          <ShieldCheck size={48} className={isMaster ? 'text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'text-accent drop-shadow-[0_0_15px_rgba(255,59,59,0.5)]'} />
           <h2 className={`text-2xl font-bold uppercase tracking-widest text-center ${isMaster ? 'text-blue-400' : 'text-slate-100'}`}>
             {isMaster ? 'Master Control' : 'Mentor Login'}
           </h2>
@@ -81,8 +81,8 @@ const LoginScreen = ({ onLogin }) => {
 
         {error && <div className="text-red-400 text-sm text-center flex items-center justify-center gap-1"><AlertCircle size={14} /> {error}</div>}
 
-        <input type="email" placeholder={isMaster ? "Admin Email" : "Mentor Email"} required className="w-full bg-black/50 border border-white/10 rounded-xl py-3 px-4 text-sm text-slate-200 focus:outline-none focus:border-accent transition-colors shadow-inner text-center" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input type="password" placeholder="Password" required className="w-full bg-black/50 border border-white/10 rounded-xl py-3 px-4 text-sm text-slate-200 focus:outline-none focus:border-accent transition-colors shadow-inner text-center" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input type="email" placeholder={isMaster ? "Admin Email" : "Mentor Email"} required className={`w-full bg-black/50 border border-white/10 rounded-xl py-3 px-4 text-sm text-slate-200 focus:outline-none transition-colors shadow-inner text-center ${isMaster ? 'focus:border-blue-500' : 'focus:border-accent'}`} value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password" required className={`w-full bg-black/50 border border-white/10 rounded-xl py-3 px-4 text-sm text-slate-200 focus:outline-none transition-colors shadow-inner text-center ${isMaster ? 'focus:border-blue-500' : 'focus:border-accent'}`} value={password} onChange={(e) => setPassword(e.target.value)} />
 
         <button type="submit" className={`w-full py-3 rounded-lg font-bold tracking-widest transition-all ${isMaster ? 'bg-blue-500/20 text-blue-400 border border-blue-500 hover:bg-blue-500 hover:text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-accent/20 border border-accent text-accent hover:bg-accent hover:text-dark shadow-[0_0_10px_rgba(255,59,59,0.3)]'}`}>
           {isMaster ? 'INITIALIZE SYSTEM' : 'ACCESS ARENA'}
@@ -99,7 +99,7 @@ const App = () => {
 
   return (
     <Router>
-      <div className="bg-blobs"></div>
+      <div className={`bg-blobs ${localStorage.getItem('role') === 'super_admin' ? 'bg-blobs-blue' : ''}`}></div>
       <div className="min-h-screen flex flex-col relative z-0">
         <Header setIsAuthenticated={setIsAuthenticated} />
         <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8">

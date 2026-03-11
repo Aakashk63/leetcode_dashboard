@@ -147,8 +147,8 @@ const Analytics = () => {
                             key={m.email}
                             onClick={() => toggleMentor(m.email)}
                             className={`px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase transition-all border ${selectedMentors.includes(m.email)
-                                    ? 'bg-blue-500 text-white border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                                    : 'bg-slate-800/40 text-slate-400 border-white/5 hover:border-blue-500/50'
+                                ? 'bg-blue-500 text-white border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                                : 'bg-slate-800/40 text-slate-400 border-white/5 hover:border-blue-500/50'
                                 }`}
                         >
                             {m.display || m.email}
@@ -166,7 +166,7 @@ const Analytics = () => {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-card/40 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden shadow-2xl p-6 h-[450px] flex flex-col">
+                <div className={`glass-card backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden shadow-2xl p-6 h-[450px] flex flex-col ${isSuperAdmin ? 'glass-card-hover-blue' : 'glass-card-hover-red'}`}>
                     <h2 className="text-xl font-black text-white uppercase italic tracking-wider mb-6 flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full animate-pulse-fast ${isSuperAdmin ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,1)]' : 'bg-accent shadow-[0_0_8px_rgba(255,59,59,1)]'}`}></div>
                         Activity <span className="text-gray-500">Bar Chart</span>
@@ -191,7 +191,7 @@ const Analytics = () => {
                     )}
                 </div>
 
-                <div className="bg-card/40 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden shadow-2xl p-6 flex flex-col h-[450px]">
+                <div className={`glass-card backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden shadow-2xl p-6 flex flex-col h-[450px] ${isSuperAdmin ? 'glass-card-hover-blue' : 'glass-card-hover-red'}`}>
                     <h2 className="text-xl font-black text-white uppercase italic tracking-wider mb-6 flex-shrink-0 flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full animate-pulse-fast ${isSuperAdmin ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,1)]' : 'bg-accent shadow-[0_0_8px_rgba(255,59,59,1)]'}`}></div>
                         Top Active <span className="text-gray-500">{date}</span>

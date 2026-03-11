@@ -168,7 +168,7 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-8">
                     {/* Student Add/Update Form */}
-                    <form onSubmit={handleStudentSubmit} className={`glass-card p-6 space-y-5 h-fit bg-[#0B1220]/50 border-white/10 hover:border-white/20 transition-colors shadow-2xl relative`}>
+                    <form onSubmit={handleStudentSubmit} className={`glass-card p-6 space-y-5 h-fit bg-[#0B1220]/50 border-white/10 transition-colors shadow-2xl relative ${isSuperAdmin ? 'glass-card-hover-blue hover:border-blue-500/20' : 'glass-card-hover-red hover:border-accent/20'}`}>
                         {editingId && <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]"></div>}
                         <div className="flex items-center justify-between mb-2">
                             <div className={`flex items-center gap-2 ${editingId ? 'text-yellow-400' : (isSuperAdmin ? 'text-blue-400' : 'text-purple-400')} drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]`}>
@@ -223,7 +223,7 @@ const AdminDashboard = () => {
                     </form>
 
                     {isSuperAdmin && (
-                        <form onSubmit={handleAddMentor} className="glass-card p-6 space-y-5 h-fit bg-[#0B1220]/50 border-blue-500/20 hover:border-blue-500/50 transition-colors shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+                        <form onSubmit={handleAddMentor} className="glass-card glass-card-hover-blue p-6 space-y-5 h-fit bg-[#0B1220]/50 border-blue-500/20 transition-colors shadow-[0_0_30px_rgba(59,130,246,0.1)]">
                             <div className="flex items-center gap-2 mb-2 text-blue-400">
                                 <FilePlus size={24} />
                                 <h2 className="text-lg font-bold text-slate-100 tracking-wider">Deploy New Admin/Mentor</h2>
@@ -255,7 +255,7 @@ const AdminDashboard = () => {
                     )}
                 </div>
 
-                <div className={`glass-card p-6 flex flex-col h-full bg-[#0B1220]/50 border-white/5`}>
+                <div className={`glass-card p-6 flex flex-col h-full bg-[#0B1220]/50 border-white/5 ${isSuperAdmin ? 'glass-card-hover-blue' : 'glass-card-hover-red'}`}>
                     <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
                         <h2 className="text-lg font-bold text-slate-200 drop-shadow-md whitespace-nowrap">
                             {isSuperAdmin ? 'Global Student Directory' : 'My Student Directory'}

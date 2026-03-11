@@ -11,12 +11,17 @@
 
 @layer components {
   .glass-card {
-    @apply bg-card/90 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl transition-all duration-300;
+    @apply border border-white/10 rounded-xl shadow-2xl transition-all duration-300;
   }
 
-  .glass-card:hover {
+  .glass-card-hover-red:hover {
     @apply border-accent/40 -translate-y-1;
     box-shadow: 0 10px 30px -10px rgba(255, 59, 59, 0.3);
+  }
+
+  .glass-card-hover-blue:hover {
+    @apply border-blue-500/40 -translate-y-1;
+    box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.3);
   }
 
   .glass-input {
@@ -46,6 +51,10 @@
   height: 50vh;
   background: radial-gradient(ellipse at top, rgba(255, 59, 59, 0.08) 0%, transparent 60%);
   z-index: -1;
+}
+
+.bg-blobs-blue::after {
+  background: radial-gradient(ellipse at top, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
 }
 
 .slide-in-bottom {
