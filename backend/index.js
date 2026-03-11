@@ -39,6 +39,11 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 
+// Health Check
+app.get('/health', (req, res) => {
+    res.json({ status: "running" });
+});
+
 // Run Server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
